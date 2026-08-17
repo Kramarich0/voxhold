@@ -1,0 +1,3 @@
+[install]
+exact = true
+default-trusted-dependency = false
