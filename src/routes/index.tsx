@@ -5,9 +5,5 @@ export const Route = createFileRoute("/")({
 });
 
 function HomeComponent() {
-  return (
-    <div className="p-2">
-      <h3>Welcome Home!</h3>
-    </div>
-  );
+  return <h3>тут будет дашборд как в дискорде</h3>;
 }

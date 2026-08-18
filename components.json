@@ -10,12 +10,12 @@
     "cssVariables": true,
     "prefix": ""
   },
-  "iconLibrary": "hugeicons",
+  "iconLibrary": "phosphor",
   "rtl": false,
   "aliases": {
-    "components": "@/shared",
+    "components": "@/shared/ui/core",
     "utils": "@/shared/lib/utils",
-    "ui": "@/shared/ui",
+    "ui": "@/shared/ui/core",
     "lib": "@/shared/lib",
     "hooks": "@/shared/hooks"
   },

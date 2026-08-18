@@ -1,0 +1,26 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: lint
+      glob: "**/*.{js,jsx,ts,tsx}" 
+      run: bun lint:fix {staged_files}
+      stage_fixed: true
+
+    - name: arch-check
+      run: bun scripts/arch-check.ts {staged_files}
+
+commit-msg:
+  commands:
+    commit-check:
+      run: bun scripts/check-commit-name.ts {1}
+
+pre-push:
+  parallel: true
+  jobs:
+    - name: type-check
+      run: bun run type-check
+
+post-merge:
+  commands:
+    install:
+      run: bun install

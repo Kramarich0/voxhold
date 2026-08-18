@@ -1,0 +1,36 @@
+import type { ComponentProps, ReactNode } from "react";
+import { cn } from "@/shared/lib/cn";
+import { Button } from "../core/button";
+import { Spinner } from "../core/spinner";
+
+type Props = ComponentProps<typeof Button> & {
+  children: ReactNode;
+  isLoading: boolean;
+  loadingText?: string;
+};
+
+export function LoadingButton({
+  children,
+  className,
+  disabled,
+  isLoading,
+  loadingText,
+  ...props
+}: Props) {
+  const content = loadingText ?? (typeof children === "string" ? children : "Loading...");
+
+  return (
+    <Button {...props} disabled={isLoading || disabled} className={cn("relative", className)}>
+      <span className="absolute inset-0 flex items-center justify-center gap-2 p-2">
+        {isLoading ? (
+          <>
+            <Spinner />
+            {content}
+          </>
+        ) : (
+          children
+        )}
+      </span>
+    </Button>
+  );
+}
