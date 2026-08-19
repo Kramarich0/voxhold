@@ -20,16 +20,21 @@ export function LoadingButton({
   const content = loadingText ?? (typeof children === "string" ? children : "Loading...");
 
   return (
-    <Button {...props} disabled={isLoading || disabled} className={cn("relative", className)}>
-      <span className="absolute inset-0 flex items-center justify-center gap-2 p-2">
-        {isLoading ? (
-          <>
-            <Spinner />
-            {content}
-          </>
-        ) : (
-          children
-        )}
+    <Button
+      {...props}
+      disabled={isLoading || disabled}
+      className={cn("relative inline-flex items-center justify-center", className)}
+    >
+      {isLoading && (
+        <span className="absolute inset-0 flex items-center justify-center gap-2 bg-inherit rounded-[inherit]">
+          <Spinner />
+          {content}
+        </span>
+      )}
+      <span
+        className={cn("inline-flex items-center justify-center gap-1.5", isLoading && "invisible")}
+      >
+        {children}
       </span>
     </Button>
   );

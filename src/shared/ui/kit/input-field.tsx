@@ -50,8 +50,8 @@ export function InputField({
           <Button
             type="button"
             variant="ghost"
-            size="icon"
-            className="absolute hover:bg-transparent top-1/2 right-1.5 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            size="icon-xs"
+            className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground hover:text-foreground size-5"
             onClick={() => setPasswordVisible((prev) => !prev)}
             aria-label={passwordVisible ? "Hide password" : "Show password"}
           >
