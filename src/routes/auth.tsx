@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useInstanceQuery } from "@/entities/auth/api/auth.queries";
 import { useAuthStore } from "@/entities/auth/model/use-auth.store";
-import { useInstanceQuery } from "@/features/auth/api/auth.queries";
 import { LoginForm } from "@/features/auth/ui/login-form";
 import { RegisterForm } from "@/features/auth/ui/register-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/core/card";
@@ -13,7 +13,7 @@ type AuthSearch = {
 
 export const Route = createFileRoute("/auth")({
   validateSearch: (search: Record<string, unknown>): AuthSearch => ({
-    tab: search.tab === "register" || search.invite ? "register" : "login",
+    tab: search.tab === "register" || search.invite != null ? "register" : "login",
     invite: typeof search.invite === "string" ? search.invite : undefined,
   }),
   beforeLoad: () => {

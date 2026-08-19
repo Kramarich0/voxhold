@@ -1,5 +1,6 @@
 import { IconContext } from "@phosphor-icons/react";
-import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
+import { createRootRoute, Outlet } from "@tanstack/react-router";
+import { ThemeProvider } from "next-themes";
 import { lazy, Suspense } from "react";
 import { Toaster } from "@/shared/ui/core/sonner";
 
@@ -17,39 +18,22 @@ export const Route = createRootRoute({
 
 function RootComponent() {
   return (
-    <IconContext.Provider
-      value={{
-        size: 16,
-        weight: "regular",
-        className: "select-none shrink-0",
-      }}
-    >
-      <div className="dark h-full bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary-foreground">
-        <div className="p-2 flex gap-2 text-lg">
-          <Link
-            to="/"
-            activeProps={{
-              className: "font-bold",
-            }}
-            activeOptions={{ exact: true }}
-          >
-            Home
-          </Link>{" "}
-          <Link
-            to="/auth"
-            activeProps={{
-              className: "font-bold",
-            }}
-          >
-            Login
-          </Link>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <IconContext.Provider
+        value={{
+          size: 16,
+          weight: "regular",
+          className: "select-none shrink-0",
+        }}
+      >
+        <div className="h-full bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary-foreground">
+          <Outlet />
+          <Toaster duration={4000} gap={8} position="top-center" />
+          <Suspense>
+            <TanStackRouterDevtools position="bottom-right" />
+          </Suspense>
         </div>
-        <Outlet />
-        <Toaster richColors position="top-right" />
-        <Suspense>
-          <TanStackRouterDevtools position="bottom-right" />
-        </Suspense>
-      </div>
-    </IconContext.Provider>
+      </IconContext.Provider>
+    </ThemeProvider>
   );
 }
