@@ -2,10 +2,10 @@ import { valibotResolver } from "@hookform/resolvers/valibot";
 import { KeyIcon, LockKeyIcon, UserIcon, UserPlusIcon } from "@phosphor-icons/react";
 import type { HTMLInputTypeAttribute, ReactNode } from "react";
 import { type Path, useForm } from "react-hook-form";
-import { useAuthMutation } from "@/features/auth/api/auth.queries";
 import { type RegisterFormData, registerSchema } from "@/features/auth/model/auth.schemas";
 import { InputField } from "@/shared/ui/kit/input-field";
 import { LoadingButton } from "@/shared/ui/kit/loading-button";
+import { useRegisterMutation } from "../api/auth.mutations";
 
 type RegisterFormProps = {
   initialInviteToken?: string;
@@ -56,7 +56,7 @@ const REGISTER_FIELDS = [
 ] satisfies readonly FormFieldConfig[];
 
 export function RegisterForm({ initialInviteToken = "" }: RegisterFormProps) {
-  const registerAction = useAuthMutation("register");
+  const registerAction = useRegisterMutation();
 
   const {
     register,

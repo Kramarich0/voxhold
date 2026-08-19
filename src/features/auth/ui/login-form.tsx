@@ -2,10 +2,10 @@ import { valibotResolver } from "@hookform/resolvers/valibot";
 import { LockKeyIcon, SignInIcon, UserIcon } from "@phosphor-icons/react";
 import type { HTMLInputTypeAttribute, ReactNode } from "react";
 import { type Path, useForm } from "react-hook-form";
-import { useAuthMutation } from "@/features/auth/api/auth.queries";
 import { type LoginFormData, loginSchema } from "@/features/auth/model/auth.schemas";
 import { InputField } from "@/shared/ui/kit/input-field";
 import { LoadingButton } from "@/shared/ui/kit/loading-button";
+import { useLoginMutation } from "../api/auth.mutations";
 
 type FormFieldConfig = {
   name: Path<LoginFormData>;
@@ -37,7 +37,7 @@ const LOGIN_FIELDS = [
 ] satisfies readonly FormFieldConfig[];
 
 export function LoginForm() {
-  const login = useAuthMutation("login");
+  const login = useLoginMutation();
 
   const {
     register,
