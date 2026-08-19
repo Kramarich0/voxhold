@@ -87,7 +87,7 @@ export function ChannelsSidebar({
           <div className="flex items-center gap-2 min-w-0">
             <div className="relative shrink-0">
               <AppAvatar name={user?.username} size="sm" />
-              <span className="absolute bottom-0 right-0 size-2 rounded-full bg-emerald-500 ring-2 ring-background" />
+              <span className="absolute bottom-0 right-0 size-2 rounded-full bg-success ring-2 ring-background" />
             </div>
             <div className="flex flex-col min-w-0">
               <span className="truncate text-xs font-medium">{user?.username ?? "Loading..."}</span>
@@ -157,22 +157,24 @@ function ChannelSection({
           className={buttonVariants({
             variant: "plain",
             size: "xs",
-            className: "group flex w-full items-center justify-start",
+            className: "group flex flex-1 min-w-0 items-center justify-start",
           })}
         >
           <span className="text-2xs font-bold uppercase tracking-wider">{title}</span>
           <CaretRightIcon className="size-3 transition-transform group-aria-expanded:rotate-90" />
         </CollapsibleTrigger>
 
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="text-muted-foreground"
-          onClick={() => onCreateChannel(kind)}
-          aria-label={`Create ${title}`}
-        >
-          <PlusIcon />
-        </Button>
+        <AppTooltip content={`Create ${kind === "text" ? "Text" : "Voice"} Channel`} side="top">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="text-muted-foreground"
+            onClick={() => onCreateChannel(kind)}
+            aria-label={`Create ${title}`}
+          >
+            <PlusIcon />
+          </Button>
+        </AppTooltip>
       </div>
 
       <CollapsibleContent>
