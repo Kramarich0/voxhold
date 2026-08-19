@@ -4,7 +4,14 @@
     "enabled": false
   },
   "files": {
-    "includes": ["**", "!!**/routeTree.gen.ts", "!!**/dist", "!!node_modules", "!!**/.vercel", "!!**./vercel.json"]
+    "includes": [
+      "**",
+      "!!**/routeTree.gen.ts",
+      "!!**/dist",
+      "!!node_modules",
+      "!!**/.vercel",
+      "!!**/vercel.json"
+    ]
   },
   "formatter": {
     "enabled": true,
