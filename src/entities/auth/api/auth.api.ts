@@ -8,11 +8,13 @@ import type {
 } from "../model/auth.types";
 
 export const authApi = {
-  getInstance: () => api.get<InstanceInfo>("/instance"),
+  getInstance: () => api.get<InstanceInfo>("/instance", { skipAuth: true }),
 
-  login: (payload: LoginPayload) => api.post<AuthResponse>("/auth/login", payload),
+  login: (payload: LoginPayload) =>
+    api.post<AuthResponse>("/auth/login", payload, { skipAuth: true }),
 
-  register: (payload: RegisterPayload) => api.post<AuthResponse>("/auth/register", payload),
+  register: (payload: RegisterPayload) =>
+    api.post<AuthResponse>("/auth/register", payload, { skipAuth: true }),
 
   refresh: () => api.post<RefreshResponse>("/auth/refresh"),
 

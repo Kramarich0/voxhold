@@ -1,5 +1,3 @@
-import type { User } from "@/shared/api/user.types";
-
 export type UserRole = "owner" | "admin" | "member";
 
 export type Registration = "invite_only" | "open";
@@ -9,8 +7,14 @@ export type SessionInfo = {
   expires_at: number;
 };
 
+export type AuthUser = {
+  id: number;
+  username: string;
+  created_at: number;
+};
+
 export type AuthResponse = {
-  user: User;
+  user: AuthUser;
   session: SessionInfo;
 };
 
