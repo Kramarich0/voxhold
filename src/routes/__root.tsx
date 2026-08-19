@@ -1,13 +1,15 @@
 import { IconContext } from "@phosphor-icons/react";
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { ThemeProvider } from "next-themes";
-import { lazy, Suspense } from "react";
+import { type ComponentType, lazy, Suspense } from "react";
 import { Toaster } from "@/shared/ui/core/sonner";
 
-const TanStackRouterDevtools = import.meta.env.PROD
+const TanStackRouterDevtools: ComponentType<{
+  position?: "bottom-right" | "bottom-left" | "top-right" | "top-left";
+}> = import.meta.env.PROD
   ? () => null
   : lazy(() =>
-      import("@tanstack/router-devtools").then((res) => ({
+      import("@tanstack/react-router-devtools").then((res) => ({
         default: res.TanStackRouterDevtools,
       })),
     );
