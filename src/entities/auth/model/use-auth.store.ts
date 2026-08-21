@@ -1,3 +1,4 @@
+// TODO: попробовать без него обойтись
 import { useAuthTokenStore } from "@/shared/api/auth-token";
 
 export const useAuthStore = useAuthTokenStore;
