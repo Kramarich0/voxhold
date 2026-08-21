@@ -1,0 +1,35 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker-js/master/packages/api/schema/stryker-core.json",
+  "testRunner": "vitest",
+  "vitest": {
+    "configFile": "vitest.config.ts"
+  },
+  "inPlace": true,
+  "disableTypeChecks": true,
+  "ignoreStatic": true,
+  "mutate": [
+    "src/shared/lib/**/*.ts",
+    "!src/shared/lib/**/*.test.ts",
+
+    "src/shared/api/**/*.ts",
+    "!src/shared/api/**/*.test.ts",
+
+    "src/features/auth/model/auth.schemas.ts",
+    "src/features/message/model/use-emoji-autocomplete.ts",
+
+    "src/features/**/api/*.mutations.ts",
+    "src/entities/**/api/*.http.ts",
+    "src/entities/message/model/message.cache.ts"
+  ],
+  "reporters": ["progress", "clear-text", "html"],
+  "htmlReporter": {
+    "fileName": "generated/mutation/mutation.html"
+  },
+  "concurrency": 4,
+  "timeoutMS": 10000,
+  "thresholds": {
+    "high": 80,
+    "low": 60,
+    "break": null
+  }
+}

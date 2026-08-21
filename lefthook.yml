@@ -7,7 +7,7 @@ pre-commit:
       stage_fixed: true
 
     - name: arch-check
-      run: bun scripts/arch-check.ts {staged_files}
+      run: bun run arch-check
 
 commit-msg:
   commands:
@@ -19,6 +19,9 @@ pre-push:
   jobs:
     - name: type-check
       run: bun run type-check
+
+    - name: tests
+      run: bun test:run
 
 post-merge:
   commands:

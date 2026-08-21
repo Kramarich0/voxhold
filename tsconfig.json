@@ -22,6 +22,7 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
+    "types": ["vitest/globals", "@testing-library/jest-dom"],
     "paths": {
       "@/*": ["./src/*"]
     }

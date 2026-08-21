@@ -2,10 +2,9 @@ import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-import { visualizer } from "rollup-plugin-visualizer";
 import { defineConfig } from "vite";
-import checker from "vite-plugin-checker";
 import mkcert from "vite-plugin-mkcert";
+import { VitePWA } from "vite-plugin-pwa";
 import svgr from "vite-plugin-svgr";
 
 export default defineConfig({
@@ -25,16 +24,52 @@ export default defineConfig({
     }),
     tailwindcss(),
     mkcert(),
-    checker({
-      typescript: true,
-      biome: true,
-    }),
-    visualizer({
-      open: true,
-      filename: `generated/stats-${Date.now()}.html`,
-      gzipSize: true,
-      brotliSize: true,
-      template: "treemap",
+    // checker({
+    //   typescript: true,
+    //   biome: true,
+    // }),
+    // visualizer({
+    //   open: true,
+    //   filename: `generated/stats-${Date.now()}.html`,
+    //   gzipSize: true,
+    //   brotliSize: true,
+    //   template: "treemap",
+    // }),
+    VitePWA({
+      registerType: "prompt",
+      workbox: {
+        navigateFallbackDenylist: [/^\/api/, /^\/ws/],
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
+      },
+      manifest: {
+        name: "VoxHold",
+        short_name: "VH",
+        description: "Voice and text chat platform",
+        theme_color: "#171717",
+        background_color: "#171717",
+        display: "standalone",
+        start_url: "/",
+        orientation: "any",
+        categories: ["social", "entertainment"],
+        icons: [
+          {
+            src: "pwa-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+          },
+          {
+            src: "pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+          },
+          {
+            src: "pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable",
+          },
+        ],
+      },
     }),
   ],
   server: {
@@ -44,7 +79,7 @@ export default defineConfig({
     proxy: {
       "/api": {
         target: "http://localhost:8080",
-        changeOrigin: true,
+        changeOrigin: false,
         secure: false,
         ws: true,
       },
