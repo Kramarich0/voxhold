@@ -1,194 +1,450 @@
-import { PushPinIcon, UserPlusIcon, UsersIcon } from "@phosphor-icons/react";
-import { getRouteApi } from "@tanstack/react-router";
-import { format, isSameDay } from "date-fns";
-import { useEffect, useRef } from "react";
-import type { UserRole } from "@/entities/auth/model/auth.types";
-import type { Channel } from "@/entities/channel/model/channel.types";
 import {
-  useChannelMessagesQuery,
-  useChannelPinsQuery,
-} from "@/entities/message/api/message.queries";
+  ArrowDownIcon,
+  HashIcon,
+  MagnifyingGlassIcon,
+  PushPinIcon,
+  UsersIcon,
+} from "@phosphor-icons/react";
+import { getRouteApi } from "@tanstack/react-router";
+import { memo, useEffect, useMemo, useState } from "react";
+import { Virtuoso } from "react-virtuoso";
+import { useChannelRoomSubscription } from "@/entities/channel/api/channel.subscriptions";
+import type { Channel } from "@/entities/channel/model/channel.types";
+import { useMessageSubscriptions } from "@/entities/message/api/message.subscriptions";
 import type { Message } from "@/entities/message/model/message.types";
-import { MessageItem } from "@/entities/message/ui/message-item";
-import { useServerMembersQuery } from "@/entities/server/api/server.queries";
+import { MessageItem, MessageItemSkeleton } from "@/entities/message/ui/message-item";
+import { useServerPresence } from "@/entities/server/api/server.subscriptions";
+import type { ServerRole } from "@/entities/server/model/server.types";
 import { RoleBadge } from "@/entities/server/ui/role-badge";
+import { UserProfilePopover } from "@/entities/user/ui/user-profile-popover";
+import {
+  useDeleteMessageMutation,
+  usePinMessageMutation,
+} from "@/features/message/api/message.mutations";
+import { useChannelReadTracker } from "@/features/message/model/use-channel-read-tracker";
+import { EditMessageForm } from "@/features/message/ui/edit-message-form";
+import { MessageActions } from "@/features/message/ui/message-actions";
 import { MessageInput } from "@/features/message/ui/message-input";
+import { cn } from "@/shared/lib/cn";
+import { formatDateDivider, isSameDayTimestamp } from "@/shared/lib/date";
+import { getInitials } from "@/shared/lib/get-initials";
 import { Badge } from "@/shared/ui/core/badge";
 import { Button } from "@/shared/ui/core/button";
-import { ScrollArea } from "@/shared/ui/core/scroll-area";
-import { AppSearch } from "@/shared/ui/kit/app-search";
+import { Spinner } from "@/shared/ui/core/spinner";
+import { AppAvatar } from "@/shared/ui/kit/app-avatar";
 import { AppTooltip } from "@/shared/ui/kit/app-tooltip";
+import { EmptyState } from "@/shared/ui/kit/empty-state";
+import { SkeletonList } from "@/shared/ui/kit/skeleton-list";
 import { ThemeToggle } from "@/shared/ui/kit/theme-toggle";
+import { useChatMessages } from "../model/use-chat-messages";
+import { useChatScroll } from "../model/use-chat-scroll";
 import { ChatHeader } from "./chat-header";
+
+export type RightPanelMode = "members" | "search" | "pins" | null;
 
 type Props = {
   serverId: number;
   channel: Channel;
-  isMembersOpen: boolean;
-  onToggleMembers: () => void;
+  activePanel: RightPanelMode;
+  targetMessageId?: number | null;
+  onTogglePanel: (panel: NonNullable<RightPanelMode>) => void;
 };
 
+type VirtuosoContext = {
+  isFetchingNextPage: boolean;
+  isFetchingNewerPage: boolean;
+  hasNextPage: boolean;
+  isContextMode: boolean;
+  channelName: string;
+};
+
+const BOTTOM_SCROLL_THRESHOLD_PX = 64;
 const routeApi = getRouteApi("/_app/channels/$serverId/$channelId");
 
-export function ChatPanel({ serverId, channel, isMembersOpen, onToggleMembers }: Props) {
+const VIRTUOSO_COMPONENTS = {
+  Header: ({ context }: { context?: VirtuosoContext }) => {
+    if (!context) return null;
+    return (
+      <div className="pt-2">
+        {context.isFetchingNextPage && (
+          <div className="flex items-center justify-center py-3 shrink-0">
+            <Spinner className="text-muted-foreground" />
+          </div>
+        )}
+
+        {!context.hasNextPage && !context.isContextMode && (
+          <div className="flex flex-col items-start px-6 py-6 select-none border-b border-border/40 pb-4 justify-end">
+            <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+              <HashIcon className="size-5 text-primary" />
+            </div>
+            <h3 className="text-base font-bold text-foreground">
+              Welcome to #{context.channelName}!
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              This is the very beginning of the #{context.channelName} channel history.
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  },
+  Footer: ({ context }: { context?: VirtuosoContext }) => {
+    return (
+      <div className="py-2 flex items-center justify-center min-h-4">
+        {context?.isFetchingNewerPage && <Spinner className="size-4 text-muted-foreground" />}
+      </div>
+    );
+  },
+};
+
+export function ChatPanel({
+  serverId,
+  channel,
+  activePanel,
+  targetMessageId,
+  onTogglePanel,
+}: Props) {
+  useChannelRoomSubscription(serverId, channel.id);
+  useMessageSubscriptions(serverId, channel.id);
   const navigate = routeApi.useNavigate();
-  const searchParams = routeApi.useSearch();
-  const currentSearch = searchParams.search ?? "";
-
-  const { data, isLoading } = useChannelMessagesQuery(serverId, channel.id);
-  const { data: pins = [] } = useChannelPinsQuery(serverId, channel.id);
-  const { data: members = [] } = useServerMembersQuery(serverId);
-  const scrollBottomRef = useRef<HTMLDivElement>(null);
-
-  const pinnedMessageIds = new Set(pins.map((p) => p.message.id));
-  const memberRoleMap = new Map(members.map((m) => [m.user_id, m.role]));
-  const allMessages = data?.pages.flatMap((page) => page.messages) ?? [];
-
-  const displayedMessages = currentSearch
-    ? allMessages.filter(
-        (m) =>
-          m.content.toLowerCase().includes(currentSearch.toLowerCase()) ||
-          m.author.username.toLowerCase().includes(currentSearch.toLowerCase()),
-      )
-    : allMessages;
+  const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!isLoading && displayedMessages.length > 0 && currentSearch == null) {
-      scrollBottomRef.current?.scrollIntoView({ behavior: "instant" });
-    }
-  }, [isLoading, displayedMessages.length, currentSearch]);
+    if (targetMessageId == null) return;
+    setHighlightedMessageId(targetMessageId);
+    const timer = setTimeout(() => setHighlightedMessageId(null), 2500);
+    return () => clearTimeout(timer);
+  }, [targetMessageId]);
 
-  const handleSearch = (query: string) => {
-    navigate({
-      search: (prev: Record<string, unknown>) => ({
-        ...prev,
-        search: query || undefined,
-      }),
-      replace: true,
-    });
+  const {
+    displayedMessages,
+    regularMessages,
+    latestMessage,
+    isMessagesLoading,
+    isContextMode,
+    hasNextPage,
+    isFetchingNextPage,
+    isFetchingNewerPage,
+    fetchOlderPage,
+    fetchNewerPage,
+    pinnedMessageIds,
+    memberRoleMap,
+    pinsCount,
+    membersCount,
+  } = useChatMessages(serverId, channel.id, targetMessageId);
+
+  const {
+    virtuosoRef,
+    isAtBottom,
+    setIsAtBottom,
+    firstItemIndex,
+    handleStartReached,
+    handleEndReached,
+    scrollToBottom,
+  } = useChatScroll({
+    displayedMessages,
+    targetMessageId,
+    isMessagesLoading,
+    isContextMode,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchOlderPage,
+    fetchNewerPage,
+  });
+
+  const deleteMessageMutation = useDeleteMessageMutation(serverId, channel.id);
+  const pinMessageMutation = usePinMessageMutation(serverId, channel.id);
+
+  useChannelReadTracker({
+    serverId,
+    channelId: channel.id,
+    lastMessageId: latestMessage?.id,
+    isAtBottom,
+    enabled: !isContextMode && !isMessagesLoading && regularMessages.length > 0,
+  });
+
+  const handleJumpToLatest = () => {
+    if (isContextMode) {
+      navigate({ search: (prev) => ({ ...prev, targetMessageId: undefined }) });
+    } else {
+      scrollToBottom();
+    }
+  };
+
+  const initialTopMostItemIndex = useMemo(() => {
+    if (displayedMessages.length === 0) return 0;
+
+    if (targetMessageId != null) {
+      const targetIdx = displayedMessages.findIndex((m) => m.id === targetMessageId);
+      if (targetIdx !== -1) {
+        return {
+          index: targetIdx,
+          align: "center" as const,
+        };
+      }
+    }
+
+    return Math.max(0, displayedMessages.length - 1);
+  }, [displayedMessages, targetMessageId]);
+
+  const virtuosoContext: VirtuosoContext = {
+    isFetchingNextPage,
+    isFetchingNewerPage,
+    hasNextPage,
+    isContextMode,
+    channelName: channel.name,
   };
 
   return (
-    <main className="flex h-full flex-1 min-w-0 min-h-0 flex-col overflow-hidden bg-background">
+    <main className="relative flex h-full flex-1 min-w-0 min-h-0 flex-col overflow-hidden bg-background">
       <ChatHeader>
         <ChatHeader.Info channel={channel} topic="Everything important is here" />
 
         <ChatHeader.Actions>
-          <AppTooltip content="Invite Members" side="bottom">
-            <Button variant="ghost" size="icon-lg" className="text-muted-foreground">
-              <UserPlusIcon />
+          <ThemeToggle />
+
+          <AppTooltip content="Search Messages" side="bottom">
+            <Button
+              variant={activePanel === "search" ? "secondary" : "ghost"}
+              size="icon-lg"
+              className={cn("text-muted-foreground", activePanel === "search" && "text-foreground")}
+              onClick={() => onTogglePanel("search")}
+              aria-label="Toggle Search Panel"
+            >
+              <MagnifyingGlassIcon />
             </Button>
           </AppTooltip>
 
           <AppTooltip content="Pinned Messages" side="bottom">
-            <Button variant="ghost" size="icon-lg" className="text-muted-foreground relative">
+            <Button
+              variant={activePanel === "pins" ? "secondary" : "ghost"}
+              size="icon-lg"
+              className={cn(
+                "text-muted-foreground relative",
+                activePanel === "pins" && "text-foreground",
+              )}
+              onClick={() => onTogglePanel("pins")}
+              aria-label="Toggle Pinned Messages"
+            >
               <PushPinIcon />
-              {pins.length > 0 && (
+              {pinsCount > 0 && (
                 <Badge
                   variant="default"
                   className="absolute -top-1 -right-1 h-3.5 min-w-3.5 px-1 text-3xs bg-warning text-warning-foreground font-bold"
                 >
-                  {pins.length}
+                  {pinsCount}
                 </Badge>
               )}
             </Button>
           </AppTooltip>
 
-          <AppSearch
-            value={currentSearch}
-            onSearch={handleSearch}
-            placeholder={`Search in #${channel.name}...`}
-            className="w-56"
-          />
-
-          <ThemeToggle />
-
           <AppTooltip content="Toggle Member List" side="bottom">
             <Button
-              variant={isMembersOpen ? "secondary" : "ghost"}
+              variant={activePanel === "members" ? "secondary" : "ghost"}
               size="lg"
-              className="gap-1.5 ml-1 text-xs"
-              onClick={onToggleMembers}
+              className={cn(
+                "gap-1.5 ml-1 text-xs text-muted-foreground",
+                activePanel === "members" && "text-foreground",
+              )}
+              onClick={() => onTogglePanel("members")}
+              aria-label="Toggle Member List"
             >
               <UsersIcon />
-              {members.length > 0 && (
-                <span className="tabular-nums font-medium">{members.length}</span>
-              )}
+              {membersCount > 0 && <span className="tabular-nums font-medium">{membersCount}</span>}
             </Button>
           </AppTooltip>
         </ChatHeader.Actions>
       </ChatHeader>
 
-      <ScrollArea className="flex-1 min-h-0 w-full">
-        {isLoading ? (
-          <div className="flex h-full items-center justify-center p-8 text-xs text-muted-foreground animate-pulse">
-            Loading messages...
-          </div>
+      <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col">
+        {isMessagesLoading ? (
+          <SkeletonList
+            count={9}
+            component={({ index = 0 }) => <MessageItemSkeleton isCompact={index % 3 !== 0} />}
+            className="flex flex-col gap-1 p-2"
+          />
         ) : displayedMessages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full p-8 text-center select-none">
-            {currentSearch == null ? (
-              <>
-                <h3 className="text-sm font-semibold text-foreground">No messages found</h3>
-                <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-                  No results matching "{currentSearch}"
-                </p>
-              </>
-            ) : (
-              <>
-                <h3 className="text-sm font-bold text-foreground">Welcome to #{channel.name}!</h3>
-                <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-                  This is the start of the #{channel.name} channel.
-                </p>
-              </>
-            )}
-          </div>
+          <EmptyState
+            icon={<HashIcon className="size-5 text-primary" />}
+            title={`Welcome to #${channel.name}!`}
+            description={`This is the start of the #${channel.name} channel history.`}
+            className="h-full min-h-0"
+          />
         ) : (
-          <div className="flex flex-col py-4">
-            {displayedMessages.map((message, index) => (
-              <MessageRow
-                key={message.id}
-                message={message}
-                prevMessage={displayedMessages[index - 1]}
-                isPinned={pinnedMessageIds.has(message.id)}
-                role={memberRoleMap.get(message.author.user_id)}
-              />
-            ))}
-            <div ref={scrollBottomRef} />
-          </div>
+          <Virtuoso
+            key={isContextMode ? `ctx-${targetMessageId}` : `live-${channel.id}`}
+            ref={virtuosoRef}
+            className="h-full w-full custom-scrollbar"
+            data={displayedMessages}
+            computeItemKey={(_, message) => message.id}
+            context={virtuosoContext}
+            firstItemIndex={firstItemIndex}
+            initialTopMostItemIndex={initialTopMostItemIndex}
+            alignToBottom={!isContextMode && targetMessageId == null}
+            defaultItemHeight={48}
+            skipAnimationFrameInResizeObserver={true}
+            minOverscanItemCount={{ top: 8, bottom: 8 }}
+            startReached={handleStartReached}
+            endReached={handleEndReached}
+            atBottomThreshold={BOTTOM_SCROLL_THRESHOLD_PX}
+            atBottomStateChange={setIsAtBottom}
+            followOutput={!isContextMode && targetMessageId == null ? "auto" : false}
+            components={VIRTUOSO_COMPONENTS}
+            itemContent={(virtuosoIndex, message) => {
+              const localIndex = virtuosoIndex - firstItemIndex;
+              const prevMessage = displayedMessages[localIndex - 1];
+
+              return (
+                <MessageRow
+                  key={message.id}
+                  message={message}
+                  serverId={serverId}
+                  prevMessage={prevMessage}
+                  isPinned={pinnedMessageIds.has(message.id)}
+                  isEditing={editingMessageId === message.id}
+                  isHighlighted={highlightedMessageId === message.id}
+                  role={memberRoleMap.get(message.author.user_id)}
+                  onStartEdit={(id) => setEditingMessageId(id)}
+                  onCancelEdit={() => setEditingMessageId(null)}
+                  onPin={(msgId, pin) => pinMessageMutation.mutate({ messageId: msgId, pin })}
+                  onDelete={(msgId) => deleteMessageMutation.mutate(msgId)}
+                  isPinPending={pinMessageMutation.isPending}
+                  isDeletePending={deleteMessageMutation.isPending}
+                />
+              );
+            }}
+          />
         )}
-      </ScrollArea>
+      </div>
+
+      {(isContextMode || !isAtBottom) && (
+        <div className="absolute bottom-16 right-6 z-20 animate-in fade-in-0 slide-in-from-bottom-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleJumpToLatest}
+            className="text-xs font-medium"
+          >
+            <span>{isContextMode ? "Jump to latest" : "Jump to bottom"}</span>
+            <ArrowDownIcon className="size-3.5" />
+          </Button>
+        </div>
+      )}
 
       <MessageInput serverId={serverId} channelId={channel.id} channelName={channel.name} />
     </main>
   );
 }
 
-function MessageRow({
-  message,
-  prevMessage,
-  isPinned,
-  role,
-}: {
+type MessageRowProps = {
   message: Message;
   prevMessage?: Message;
   isPinned: boolean;
-  role?: UserRole;
-}) {
-  const messageDate = new Date(message.created_at * 1000);
+  isEditing: boolean;
+  isHighlighted?: boolean;
+  serverId: number;
+  role?: ServerRole;
+  onStartEdit: (id: number) => void;
+  onCancelEdit: () => void;
+  onPin: (messageId: number, pin: boolean) => void;
+  onDelete: (messageId: number) => void;
+  isPinPending?: boolean;
+  isDeletePending?: boolean;
+};
+
+const GROUP_TIME_THRESHOLD_SECONDS = 10 * 60; // 10 minutes
+
+const MessageRow = memo(function MessageRow({
+  message,
+  prevMessage,
+  isPinned,
+  isEditing,
+  isHighlighted = false,
+  role,
+  serverId,
+  onStartEdit,
+  onCancelEdit,
+  onPin,
+  onDelete,
+  isPinPending,
+  isDeletePending,
+}: MessageRowProps) {
   const showDateSeparator =
-    prevMessage == null || !isSameDay(messageDate, new Date(prevMessage.created_at * 1000));
+    prevMessage == null || !isSameDayTimestamp(message.created_at, prevMessage.created_at);
+  const onlineUserIds = useServerPresence(serverId);
+  const isAuthorOnline = onlineUserIds.has(message.author.user_id);
+  const initials = getInitials(message.author.username);
+  const isSameAuthor = prevMessage?.author.user_id === message.author.user_id;
+  const isWithinTimeThreshold =
+    prevMessage != null
+      ? message.created_at - prevMessage.created_at < GROUP_TIME_THRESHOLD_SECONDS
+      : false;
+
+  const isCompact = !showDateSeparator && isSameAuthor && isWithinTimeThreshold;
 
   return (
-    <div>
+    <div className="px-2">
       {showDateSeparator && (
-        <div className="relative my-4 flex items-center justify-center px-4 select-none">
-          <div className="absolute inset-x-4 h-px bg-border/40" />
-          <span className="relative rounded-full bg-muted/60 px-2.5 py-0.5 text-2xs font-bold tracking-wider text-muted-foreground uppercase">
-            {format(messageDate, "MMMM d, yyyy")}
+        <div className="relative py-3 flex items-center justify-center px-4 select-none">
+          <div className="absolute inset-x-4 h-px bg-border" />
+          <span className="relative rounded-full bg-muted/50 px-2.5 py-0.5 text-2xs font-bold tracking-wider text-muted-foreground uppercase">
+            {formatDateDivider(message.created_at)}
           </span>
         </div>
       )}
-      <MessageItem message={message} isPinned={isPinned} badge={<RoleBadge role={role} />} />
+
+      <div className="w-full">
+        <MessageItem
+          message={message}
+          isPinned={isPinned}
+          isEditing={isEditing}
+          isCompact={isCompact}
+          className={cn("transition-colors rounded-md", isHighlighted && "bg-primary/15")}
+          badge={<RoleBadge role={role} />}
+          avatar={
+            <UserProfilePopover
+              userId={message.author.user_id}
+              roleBadge={<RoleBadge role={role} />}
+              isOnline={isAuthorOnline}
+            >
+              <AppAvatar name={initials} />
+            </UserProfilePopover>
+          }
+          author={
+            <UserProfilePopover
+              userId={message.author.user_id}
+              roleBadge={<RoleBadge role={role} />}
+              isOnline={isAuthorOnline}
+            >
+              <span className="text-xs font-semibold text-foreground tracking-tight hover:underline cursor-pointer">
+                {message.author.username}
+              </span>
+            </UserProfilePopover>
+          }
+          actions={
+            !isEditing && (
+              <MessageActions
+                messageContent={message.content}
+                messageId={message.id}
+                isPinned={isPinned}
+                onStartEdit={() => onStartEdit(message.id)}
+                onPin={onPin}
+                onDelete={onDelete}
+                isPinPending={isPinPending}
+                isDeletePending={isDeletePending}
+              />
+            )
+          }
+        >
+          <EditMessageForm
+            serverId={serverId}
+            channelId={message.channel_id}
+            message={message}
+            onCancel={onCancelEdit}
+          />
+        </MessageItem>
+      </div>
     </div>
   );
-}
+});

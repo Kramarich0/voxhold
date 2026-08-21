@@ -11,7 +11,7 @@ function ChatHeaderRoot({ className, children, ...props }: ChatHeaderRootProps) 
   return (
     <header
       className={cn(
-        "flex h-12 shrink-0 items-center justify-between border-b border-border/40 px-4 bg-background select-none",
+        "flex h-12 shrink-0 items-center justify-between border-b px-4 bg-background select-none",
         className,
       )}
       {...props}
@@ -37,7 +37,7 @@ function ChatHeaderInfo({ channel, topic }: ChatHeaderInfoProps) {
       <h2 className="truncate text-sm font-bold text-foreground">{channel.name}</h2>
       {topic && (
         <>
-          <span className="text-border/60 font-light mx-1">|</span>
+          <span className="text-border font-light mx-1">|</span>
           <span className="truncate text-xs text-muted-foreground">{topic}</span>
         </>
       )}

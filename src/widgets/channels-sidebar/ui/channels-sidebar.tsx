@@ -7,16 +7,23 @@ import {
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useChannelsQuery } from "@/entities/channel/api/channel.queries";
+import { useChannelListSubscriptions } from "@/entities/channel/api/channel.subscriptions";
 import type { Channel, ChannelKind } from "@/entities/channel/model/channel.types";
-import { ChannelItem } from "@/entities/channel/ui/channel-item";
+import { ChannelItem, ChannelItemSkeleton } from "@/entities/channel/ui/channel-item";
 import { useMeQuery } from "@/entities/user/api/user.queries";
 import { useLogoutMutation } from "@/features/auth/api/auth.mutations";
+import { ChannelActions } from "@/features/channel/ui/channel-actions";
 import { CreateChannelDialog } from "@/features/channel/ui/create-channel-dialog";
+import { DeleteChannelDialog } from "@/features/channel/ui/delete-channel-dialog";
+import { UpdateChannelDialog } from "@/features/channel/ui/update-channel-dialog";
+import { UpdateServerDialog } from "@/features/server/ui/update-server-dialog";
+import { UpdateUserDialog } from "@/features/user/ui/update-user-dialog";
 import { Button, buttonVariants } from "@/shared/ui/core/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/shared/ui/core/collapsible";
 import { ScrollArea } from "@/shared/ui/core/scroll-area";
 import { AppAvatar } from "@/shared/ui/kit/app-avatar";
 import { AppTooltip } from "@/shared/ui/kit/app-tooltip";
+import { SkeletonList } from "@/shared/ui/kit/skeleton-list";
 
 type Props = {
   serverId: number;
@@ -31,12 +38,19 @@ export function ChannelsSidebar({
   activeChannelId,
   onSelectChannel,
 }: Props) {
-  const { data: channels = [] } = useChannelsQuery(serverId);
+  useChannelListSubscriptions(serverId);
+
+  const { data: channels = [], isLoading: isChannelsLoading } = useChannelsQuery(serverId);
   const { data: user } = useMeQuery();
   const logout = useLogoutMutation();
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createDialogKind, setCreateDialogKind] = useState<ChannelKind>("text");
+  const [updateServerOpen, setUpdateServerOpen] = useState(false);
+  const [updateUserOpen, setUpdateUserOpen] = useState(false);
+
+  const [editingChannel, setEditingChannel] = useState<Channel | null>(null);
+  const [deletingChannel, setDeletingChannel] = useState<Channel | null>(null);
 
   const textChannels = channels.filter((c) => c.kind === "text");
   const voiceChannels = channels.filter((c) => c.kind === "voice");
@@ -48,14 +62,20 @@ export function ChannelsSidebar({
 
   return (
     <>
-      <aside className="flex h-full w-60 shrink-0 flex-col border-r border-border/50 bg-sidebar select-none">
-        <header className="flex h-12 items-center justify-between border-b border-border/40 px-3 shrink-0">
+      <aside className="flex h-full w-60 shrink-0 flex-col border-r bg-sidebar select-none">
+        <header className="flex h-12 items-center justify-between border-b px-3 shrink-0">
           <div className="flex flex-col min-w-0">
             <span className="text-2xs font-semibold text-muted-foreground">Workspace</span>
             <span className="truncate text-sm font-bold text-foreground">{serverName}</span>
           </div>
           <AppTooltip content="Server Settings" side="bottom">
-            <Button variant="plain" size="icon-sm">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="text-muted-foreground"
+              onClick={() => setUpdateServerOpen(true)}
+              aria-label={`Update ${serverName}`}
+            >
               <GearIcon />
             </Button>
           </AppTooltip>
@@ -67,23 +87,29 @@ export function ChannelsSidebar({
               title="Text Channels"
               kind="text"
               channels={textChannels}
+              isLoading={isChannelsLoading}
               activeChannelId={activeChannelId}
               onSelectChannel={onSelectChannel}
               onCreateChannel={handleOpenCreate}
+              onEditChannel={setEditingChannel}
+              onDeleteChannel={setDeletingChannel}
             />
 
             <ChannelSection
               title="Voice Channels"
               kind="voice"
               channels={voiceChannels}
+              isLoading={isChannelsLoading}
               activeChannelId={activeChannelId}
               onSelectChannel={onSelectChannel}
               onCreateChannel={handleOpenCreate}
+              onEditChannel={setEditingChannel}
+              onDeleteChannel={setDeletingChannel}
             />
           </div>
         </ScrollArea>
 
-        <footer className="flex h-13 items-center justify-between border-t border-border/40 px-2 bg-sidebar-accent/30 shrink-0">
+        <footer className="flex h-13 items-center justify-between border-t px-2 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <div className="relative shrink-0">
               <AppAvatar name={user?.username} size="sm" />
@@ -96,19 +122,25 @@ export function ChannelsSidebar({
           </div>
 
           <div className="flex items-center shrink-0">
-            <AppTooltip content="Invite" side="top">
+            <AppTooltip content="Invite">
               <Button variant="ghost" size="icon-sm">
                 <UserPlusIcon />
               </Button>
             </AppTooltip>
 
-            <AppTooltip content="Settings" side="top">
-              <Button variant="ghost" size="icon-sm">
+            <AppTooltip content="Settings">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="text-muted-foreground"
+                onClick={() => setUpdateUserOpen(true)}
+                aria-label={`Update ${user?.username}`}
+              >
                 <GearIcon />
               </Button>
             </AppTooltip>
 
-            <AppTooltip content="Log Out" side="top">
+            <AppTooltip content="Log Out">
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -129,6 +161,36 @@ export function ChannelsSidebar({
         onOpenChange={setCreateDialogOpen}
         defaultKind={createDialogKind}
       />
+
+      <UpdateChannelDialog
+        channel={editingChannel}
+        open={editingChannel != null}
+        onOpenChange={(open) => {
+          if (!open) setEditingChannel(null);
+        }}
+      />
+
+      <DeleteChannelDialog
+        channel={deletingChannel}
+        open={deletingChannel != null}
+        onOpenChange={(open) => {
+          if (!open) setDeletingChannel(null);
+        }}
+      />
+
+      <UpdateServerDialog
+        serverId={serverId}
+        serverName={serverName}
+        open={updateServerOpen}
+        onOpenChange={setUpdateServerOpen}
+      />
+
+      <UpdateUserDialog
+        open={updateUserOpen}
+        userAbout={user?.about ?? ""}
+        userCountryCode={user?.country_code ?? ""}
+        onOpenChange={setUpdateUserOpen}
+      />
     </>
   );
 }
@@ -137,18 +199,24 @@ type ChannelSectionProps = {
   title: string;
   kind: ChannelKind;
   channels: Channel[];
+  isLoading?: boolean;
   activeChannelId?: number;
   onSelectChannel?: (channel: Channel) => void;
   onCreateChannel: (kind: ChannelKind) => void;
+  onEditChannel: (channel: Channel) => void;
+  onDeleteChannel: (channel: Channel) => void;
 };
 
 function ChannelSection({
   title,
   kind,
   channels,
+  isLoading = false,
   activeChannelId,
   onSelectChannel,
   onCreateChannel,
+  onEditChannel,
+  onDeleteChannel,
 }: ChannelSectionProps) {
   return (
     <Collapsible defaultOpen className="flex flex-col">
@@ -164,7 +232,7 @@ function ChannelSection({
           <CaretRightIcon className="size-3 transition-transform group-aria-expanded:rotate-90" />
         </CollapsibleTrigger>
 
-        <AppTooltip content={`Create ${kind === "text" ? "Text" : "Voice"} Channel`} side="top">
+        <AppTooltip content={`Create ${kind === "text" ? "Text" : "Voice"} Channel`}>
           <Button
             variant="ghost"
             size="icon-sm"
@@ -179,14 +247,25 @@ function ChannelSection({
 
       <CollapsibleContent>
         <div className="flex flex-col gap-px mt-0.5">
-          {channels.map((channel) => (
-            <ChannelItem
-              key={channel.id}
-              channel={channel}
-              isActive={channel.id === activeChannelId}
-              onClick={() => onSelectChannel?.(channel)}
-            />
-          ))}
+          {isLoading && channels.length === 0 ? (
+            <SkeletonList count={3} component={ChannelItemSkeleton} />
+          ) : (
+            channels.map((channel) => (
+              <ChannelItem
+                key={channel.id}
+                channel={channel}
+                isActive={channel.id === activeChannelId}
+                onClick={() => onSelectChannel?.(channel)}
+                actions={
+                  <ChannelActions
+                    channel={channel}
+                    onEdit={onEditChannel}
+                    onDelete={onDeleteChannel}
+                  />
+                }
+              />
+            ))
+          )}
         </div>
       </CollapsibleContent>
     </Collapsible>
