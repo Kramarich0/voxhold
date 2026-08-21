@@ -1,13 +1,5 @@
 import { useEffect, useState } from "react";
-
-export type AutocompleteEmoji = {
-  id: string;
-  name: string;
-  native?: string;
-  url?: string;
-  keywords?: string[];
-  isCustom?: boolean;
-};
+import type { AutocompleteEmoji } from "@/entities/message/model/message.types";
 
 type EmojiMartSkin = {
   unified?: string;
