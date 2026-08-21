@@ -291,7 +291,7 @@ function createInterceptorPipeline() {
   return { use, applyRequest, applyResponse, applyError };
 }
 
-export function createApiClient(config: ClientConfig = {}) {
+export function createHttpClient(config: ClientConfig = {}) {
   const {
     baseUrl,
     defaultTimeoutMs = 15000,
@@ -431,4 +431,4 @@ export function createApiClient(config: ClientConfig = {}) {
   };
 }
 
-export type ApiClient = ReturnType<typeof createApiClient>;
+export type HttpClient = ReturnType<typeof createHttpClient>;

@@ -1,9 +1,9 @@
 import { authToken } from "./auth-token";
-import { createApiClient } from "./core";
+import { createHttpClient } from "./http-core";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "/api/v1";
 
-export const api = createApiClient({
+export const http = createHttpClient({
   baseUrl: BASE_URL,
   defaultTimeoutMs: 15000,
 
