@@ -1,7 +1,9 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "vcs": {
-    "enabled": false
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
   },
   "files": {
     "includes": [
@@ -10,7 +12,8 @@
       "!!**/dist",
       "!!node_modules",
       "!!**/.vercel",
-      "!!**/vercel.json"
+      "!!**/vercel.json",
+      "!!**/*.svg"
     ]
   },
   "formatter": {
@@ -20,6 +23,7 @@
     "lineWidth": 100
   },
   "linter": {
+    "includes": ["!!**/*.test.ts"],
     "rules": {
       "preset": "recommended",
       "nursery": {
