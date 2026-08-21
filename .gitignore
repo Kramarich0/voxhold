@@ -23,3 +23,5 @@ dist/
 !.env.example
 
 generated/
+coverage/
+.stryker-tmp/
