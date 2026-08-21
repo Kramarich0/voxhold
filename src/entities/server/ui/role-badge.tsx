@@ -1,7 +1,7 @@
-import { ROLE_DISPLAY_VARIANTS } from "@/entities/server/model/server.constants";
-import type { ServerRole } from "@/entities/server/model/server.types";
 import { cn } from "@/shared/lib/cn";
 import { Badge } from "@/shared/ui/core/badge";
+import { ROLE_DISPLAY_VARIANTS } from "../model/server.constants";
+import type { ServerRole } from "../model/server.types";
 
 type RoleBadgeProps = {
   role?: ServerRole;
