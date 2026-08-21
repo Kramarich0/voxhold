@@ -2,10 +2,10 @@ import { valibotResolver } from "@hookform/resolvers/valibot";
 import { LockKeyIcon, SignInIcon, UserIcon } from "@phosphor-icons/react";
 import type { HTMLInputTypeAttribute, ReactNode } from "react";
 import { type Path, useForm } from "react-hook-form";
-import { type LoginFormData, loginSchema } from "@/features/auth/model/auth.schemas";
 import { InputField } from "@/shared/ui/kit/input-field";
 import { LoadingButton } from "@/shared/ui/kit/loading-button";
 import { useLoginMutation } from "../api/auth.mutations";
+import { type LoginFormData, loginSchema } from "../model/auth.schemas";
 
 type FormFieldConfig = {
   name: Path<LoginFormData>;
@@ -68,7 +68,7 @@ export function LoginForm() {
         />
       ))}
 
-      <LoadingButton type="submit" isLoading={login.isPending} loadingText="Signing in...">
+      <LoadingButton type="submit" isLoading={login.isPending}>
         <SignInIcon /> Sign in
       </LoadingButton>
     </form>

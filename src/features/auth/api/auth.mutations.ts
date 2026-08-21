@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { authApi } from "@/entities/auth/api/auth.api";
+import { authHttp } from "@/entities/auth/api/auth.http";
 import type { LoginPayload, RegisterPayload } from "@/entities/auth/model/auth.types";
 import { useClearAuthToken, useSetAuthToken } from "@/entities/auth/model/use-auth.store";
 import { meQueryOptions } from "@/entities/user/api/user.queries";
@@ -12,7 +12,7 @@ export function useLoginMutation() {
   const setToken = useSetAuthToken();
 
   return useMutation({
-    mutationFn: (payload: LoginPayload) => authApi.login(payload),
+    mutationFn: (payload: LoginPayload) => authHttp.login(payload),
     onSuccess: async (data) => {
       setToken(data.session.token);
 
@@ -31,7 +31,7 @@ export function useRegisterMutation() {
   const setToken = useSetAuthToken();
 
   return useMutation({
-    mutationFn: (payload: RegisterPayload) => authApi.register(payload),
+    mutationFn: (payload: RegisterPayload) => authHttp.register(payload),
     onSuccess: async (data) => {
       setToken(data.session.token);
 
@@ -50,7 +50,7 @@ export function useLogoutMutation() {
   const clearToken = useClearAuthToken();
 
   return useMutation({
-    mutationFn: authApi.logout,
+    mutationFn: authHttp.logout,
     onSettled: () => {
       clearToken();
       queryClient.clear();

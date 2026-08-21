@@ -2,10 +2,10 @@ import { valibotResolver } from "@hookform/resolvers/valibot";
 import { KeyIcon, LockKeyIcon, UserIcon, UserPlusIcon } from "@phosphor-icons/react";
 import type { HTMLInputTypeAttribute, ReactNode } from "react";
 import { type Path, useForm } from "react-hook-form";
-import { type RegisterFormData, registerSchema } from "@/features/auth/model/auth.schemas";
 import { InputField } from "@/shared/ui/kit/input-field";
 import { LoadingButton } from "@/shared/ui/kit/loading-button";
 import { useRegisterMutation } from "../api/auth.mutations";
+import { type RegisterFormData, registerSchema } from "../model/auth.schemas";
 
 type RegisterFormProps = {
   initialInviteToken?: string;
@@ -92,11 +92,7 @@ export function RegisterForm({ initialInviteToken = "" }: RegisterFormProps) {
         />
       ))}
 
-      <LoadingButton
-        type="submit"
-        isLoading={registerAction.isPending}
-        loadingText="Creating account..."
-      >
+      <LoadingButton type="submit" isLoading={registerAction.isPending}>
         <UserPlusIcon /> Create account
       </LoadingButton>
     </form>
