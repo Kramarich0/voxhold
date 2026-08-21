@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useChannelsQuery } from "@/entities/channel/api/channel.queries";
 import { useMyServersQuery } from "@/entities/server/api/server.queries";
+import { EmptyState } from "@/shared/ui/kit/empty-state";
 
 export const Route = createFileRoute("/_app/")({
   component: AppIndexRedirectPage,
@@ -40,8 +41,11 @@ function AppIndexRedirectPage() {
   }
 
   return (
-    <div className="flex h-full w-full items-center justify-center p-6 text-center text-xs text-muted-foreground">
-      No active servers found. Please initialize or create a server.
+    <div className="flex h-full w-full items-center justify-center p-6">
+      <EmptyState
+        title="No active servers found"
+        description="Please initialize or create a server to start chatting."
+      />
     </div>
   );
 }

@@ -1,14 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import * as v from "valibot";
 import { useChannelsQuery } from "@/entities/channel/api/channel.queries";
+import type { SearchResult } from "@/entities/message/model/message.types";
 import { useMyServersQuery } from "@/entities/server/api/server.queries";
+import { useServerSubscriptions } from "@/entities/server/api/server.subscriptions";
+import { EmptyState } from "@/shared/ui/kit/empty-state";
 import { ChannelsSidebar } from "@/widgets/channels-sidebar/ui/channels-sidebar";
 import { ChatPanel } from "@/widgets/chat-panel/ui/chat-panel";
-import { MembersSidebar } from "@/widgets/members-sidebar/ui/members-sidebar";
+import {
+  SecondarySidebar,
+  type SecondarySidebarMode,
+} from "@/widgets/secondary-sidebar/ui/secondary-sidebar";
 
 const channelSearchSchema = v.object({
-  members: v.optional(v.boolean()),
-  search: v.optional(v.string()),
+  panel: v.optional(v.picklist(["members", "search", "pins", "none"])),
+  targetMessageId: v.optional(v.number()),
 });
 
 export type ChannelSearch = v.InferOutput<typeof channelSearchSchema>;
@@ -24,10 +30,13 @@ function ChannelViewPage() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
 
-  const isMembersOpen = search.members ?? true;
-
   const serverId = Number(rawServerId);
   const channelId = Number(rawChannelId);
+  useServerSubscriptions(serverId);
+
+  const activePanel: SecondarySidebarMode | null =
+    search.panel === "none" ? null : (search.panel ?? "members");
+  const targetMessageId = search.targetMessageId;
 
   const { data: servers = [], isLoading: isServersLoading } = useMyServersQuery();
   const currentServer = servers.find((s) => s.id === serverId) ?? servers[0];
@@ -42,17 +51,43 @@ function ChannelViewPage() {
         serverId: String(serverId),
         channelId: String(selectedChannelId),
       },
-      search: (prev) => prev,
+      search: (prev) => ({ ...prev, targetMessageId: undefined }),
     });
   };
 
-  const handleToggleMembers = () => {
+  const handleTogglePanel = (panel: SecondarySidebarMode) => {
     navigate({
-      search: (prev) => ({
-        ...prev,
-        members: !(prev.members ?? true),
-      }),
+      search: (prev) => {
+        const currentEffective = prev.panel === "none" ? null : (prev.panel ?? "members");
+        return {
+          ...prev,
+          panel: currentEffective === panel ? "none" : panel,
+        };
+      },
     });
+  };
+
+  const handleClosePanel = () => {
+    navigate({
+      search: (prev) => ({ ...prev, panel: "none" }),
+    });
+  };
+
+  const handleSelectSearchResult = (result: SearchResult) => {
+    if (result.channel_id === channelId) {
+      navigate({
+        search: (prev) => ({ ...prev, targetMessageId: result.id }),
+      });
+    } else {
+      navigate({
+        to: "/channels/$serverId/$channelId",
+        params: {
+          serverId: String(serverId),
+          channelId: String(result.channel_id),
+        },
+        search: (prev) => ({ ...prev, targetMessageId: result.id }),
+      });
+    }
   };
 
   if (isServersLoading || (isChannelsLoading && channels.length === 0)) {
@@ -65,9 +100,12 @@ function ChannelViewPage() {
 
   if (currentServer == null) {
     return (
-      <p className="flex h-full w-full items-center justify-center p-6 text-center text-xs text-muted-foreground">
-        Server not found or you don't have access.
-      </p>
+      <div className="flex h-full w-full items-center justify-center p-6">
+        <EmptyState
+          title="Server not found"
+          description="Server not found or you don't have access."
+        />
+      </div>
     );
   }
 
@@ -82,18 +120,37 @@ function ChannelViewPage() {
 
       {currentChannel ? (
         <ChatPanel
+          key={channelId}
           serverId={serverId}
           channel={currentChannel}
-          isMembersOpen={isMembersOpen}
-          onToggleMembers={handleToggleMembers}
+          activePanel={activePanel}
+          targetMessageId={targetMessageId}
+          onTogglePanel={handleTogglePanel}
         />
       ) : (
-        <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">
-          Channel not found. Select another channel from the sidebar.
+        <div className="flex flex-1 items-center justify-center">
+          <EmptyState
+            title="Channel not found"
+            description="Select another channel from the sidebar."
+          />
         </div>
       )}
 
-      {isMembersOpen && <MembersSidebar serverId={serverId} onClose={handleToggleMembers} />}
+      {currentChannel != null && (
+        <SecondarySidebar
+          serverId={serverId}
+          serverName={currentServer.name}
+          channel={currentChannel}
+          mode={activePanel}
+          onClose={handleClosePanel}
+          onSelectSearchResult={handleSelectSearchResult}
+          onSelectPinnedMessage={(pin) => {
+            navigate({
+              search: (prev) => ({ ...prev, targetMessageId: pin.message.id }),
+            });
+          }}
+        />
+      )}
     </div>
   );
 }
