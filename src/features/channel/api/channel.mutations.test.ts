@@ -47,8 +47,8 @@ describe("channel mutations", () => {
   });
 
   describe("useCreateChannelMutation", () => {
-    it("creates channel, invalidates channels query, and shows success toast", async () => {
-      const invalidateSpy = vi.spyOn(QueryClient.prototype, "invalidateQueries");
+    it("creates channel, updates channels cache, and shows success toast", async () => {
+      const setQueryDataSpy = vi.spyOn(QueryClient.prototype, "setQueryData");
       const wrapper = createWrapper();
       vi.mocked(channelHttp.createChannel).mockResolvedValueOnce({
         id: channelId,
@@ -70,9 +70,10 @@ describe("channel mutations", () => {
         name: "general",
         kind: "text",
       });
-      expect(invalidateSpy).toHaveBeenCalledWith({
-        queryKey: channelKeys.list(serverId),
-      });
+      expect(setQueryDataSpy).toHaveBeenCalledWith(
+        channelKeys.list(serverId),
+        expect.any(Function),
+      );
       expect(toast.success).toHaveBeenCalledWith("Channel created successfully");
     });
 
@@ -91,8 +92,8 @@ describe("channel mutations", () => {
   });
 
   describe("useDeleteChannelMutation", () => {
-    it("deletes channel, invalidates list, and shows success toast", async () => {
-      const invalidateSpy = vi.spyOn(QueryClient.prototype, "invalidateQueries");
+    it("deletes channel, updates channels cache, and shows success toast", async () => {
+      const setQueryDataSpy = vi.spyOn(QueryClient.prototype, "setQueryData");
       const wrapper = createWrapper();
       vi.mocked(channelHttp.deleteChannel).mockResolvedValueOnce();
 
@@ -103,16 +104,17 @@ describe("channel mutations", () => {
       });
 
       expect(channelHttp.deleteChannel).toHaveBeenCalledWith(serverId, channelId);
-      expect(invalidateSpy).toHaveBeenCalledWith({
-        queryKey: channelKeys.list(serverId),
-      });
+      expect(setQueryDataSpy).toHaveBeenCalledWith(
+        channelKeys.list(serverId),
+        expect.any(Function),
+      );
       expect(toast.success).toHaveBeenCalledWith("Channel deleted");
     });
   });
 
   describe("useUpdateChannelMutation", () => {
-    it("updates channel, invalidates list, and shows success toast", async () => {
-      const invalidateSpy = vi.spyOn(QueryClient.prototype, "invalidateQueries");
+    it("updates channel, updates channels cache, and shows success toast", async () => {
+      const setQueryDataSpy = vi.spyOn(QueryClient.prototype, "setQueryData");
       const wrapper = createWrapper();
       vi.mocked(channelHttp.updateChannel).mockResolvedValueOnce({
         id: channelId,
@@ -133,9 +135,10 @@ describe("channel mutations", () => {
       expect(channelHttp.updateChannel).toHaveBeenCalledWith(serverId, channelId, {
         name: "new-name",
       });
-      expect(invalidateSpy).toHaveBeenCalledWith({
-        queryKey: channelKeys.list(serverId),
-      });
+      expect(setQueryDataSpy).toHaveBeenCalledWith(
+        channelKeys.list(serverId),
+        expect.any(Function),
+      );
       expect(toast.success).toHaveBeenCalledWith("Channel updated");
     });
   });

@@ -40,8 +40,8 @@ describe("server mutations", () => {
   });
 
   describe("useUpdateServerMutation", () => {
-    it("updates server, invalidates myServers query, and shows toast", async () => {
-      const invalidateSpy = vi.spyOn(QueryClient.prototype, "invalidateQueries");
+    it("updates server cache and shows toast", async () => {
+      const setQueryDataSpy = vi.spyOn(QueryClient.prototype, "setQueryData");
       const wrapper = createWrapper();
       vi.mocked(serverHttp.updateServer).mockResolvedValueOnce({
         id: serverId,
@@ -59,9 +59,7 @@ describe("server mutations", () => {
       expect(serverHttp.updateServer).toHaveBeenCalledWith(serverId, {
         name: "Voxhold Global",
       });
-      expect(invalidateSpy).toHaveBeenCalledWith({
-        queryKey: serverKeys.myServers(),
-      });
+      expect(setQueryDataSpy).toHaveBeenCalledWith(serverKeys.myServers(), expect.any(Function));
       expect(toast.success).toHaveBeenCalledWith("Server updated");
     });
 

@@ -39,8 +39,8 @@ describe("user mutations", () => {
   });
 
   describe("useUpdateUserMutation", () => {
-    it("updates profile, invalidates user.me query, and shows toast", async () => {
-      const invalidateSpy = vi.spyOn(QueryClient.prototype, "invalidateQueries");
+    it("updates profile cache and shows toast", async () => {
+      const setQueryDataSpy = vi.spyOn(QueryClient.prototype, "setQueryData");
       const wrapper = createWrapper();
       vi.mocked(userHttp.updateMeProfile).mockResolvedValueOnce({
         id: 1,
@@ -59,8 +59,14 @@ describe("user mutations", () => {
       });
 
       expect(userHttp.updateMeProfile).toHaveBeenCalledWith({ about: "Updated bio" });
-      expect(invalidateSpy).toHaveBeenCalledWith({
-        queryKey: userKeys.me(),
+      expect(setQueryDataSpy).toHaveBeenCalledWith(userKeys.me(), {
+        id: 1,
+        username: "karen",
+        created_at: 100,
+        about: "Updated bio",
+        country_code: "AM",
+        last_seen_at: null,
+        updated_at: 200,
       });
       expect(toast.success).toHaveBeenCalledWith("User Profile updated");
     });
