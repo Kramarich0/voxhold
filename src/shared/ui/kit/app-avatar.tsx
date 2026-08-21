@@ -50,13 +50,13 @@ export function AppAvatar({
       {...props}
     >
       {status === "loading" && (
-        <span className="absolute inset-0 z-10 animate-pulse rounded-full bg-muted/60" />
+        <span className="absolute inset-0 z-10 animate-pulse rounded-full bg-muted/50" />
       )}
 
       {!isError && src && (
         <img
           src={src}
-          alt={label || "Avatar"}
+          alt={label}
           loading={priority ? "eager" : "lazy"}
           decoding="async"
           onError={() => setStatus("error")}

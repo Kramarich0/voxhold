@@ -1,5 +1,5 @@
 import { SmileyIcon } from "@phosphor-icons/react";
-import { lazy, type ReactNode, Suspense, useState } from "react";
+import { isValidElement, lazy, type ReactNode, Suspense, useState } from "react";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "../core/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../core/popover";
@@ -70,8 +70,8 @@ export function EmojiPicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         render={
-          trigger ? (
-            (trigger as any)
+          isValidElement(trigger) ? (
+            trigger
           ) : (
             <Button
               type="button"

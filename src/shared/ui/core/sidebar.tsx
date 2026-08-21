@@ -12,9 +12,9 @@ import {
   useEffect,
   useState,
 } from "react";
-import { useIsMobile } from "@/shared/hooks/use-mobile";
 import { cn } from "@/shared/lib/cn";
 import { setClientCookie } from "@/shared/lib/cookies";
+import { useIsMobile } from "@/shared/lib/use-mobile";
 import { Button } from "@/shared/ui/core/button";
 import { Input } from "@/shared/ui/core/input";
 import { Separator } from "@/shared/ui/core/separator";

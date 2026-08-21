@@ -1,5 +1,5 @@
 import { isValidElement, type ReactNode } from "react";
-import { useCanHover } from "@/shared/hooks/use-can-hover";
+import { useCanHover } from "@/shared/lib/use-can-hover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/shared/ui/core/tooltip";
 
 type AppTooltipProps = {
@@ -14,6 +14,7 @@ type AppTooltipProps = {
   onOpenChange?: (open: boolean) => void;
   className?: string;
   disabled?: boolean;
+  disableHoverablePopup?: boolean;
 };
 
 export function AppTooltip({
@@ -28,6 +29,7 @@ export function AppTooltip({
   onOpenChange,
   className,
   disabled = false,
+  disableHoverablePopup = true,
 }: AppTooltipProps) {
   const canHover = useCanHover();
 
@@ -36,7 +38,7 @@ export function AppTooltip({
   }
 
   const tooltipElement = (
-    <Tooltip open={open} onOpenChange={onOpenChange}>
+    <Tooltip open={open} onOpenChange={onOpenChange} disableHoverablePopup={disableHoverablePopup}>
       {isValidElement(children) ? (
         <TooltipTrigger render={children} />
       ) : (
