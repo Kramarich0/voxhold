@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { channelApi } from "@/entities/channel/api/channel.api";
-import { channelKeys } from "@/entities/channel/model/channel.keys";
+import { channelHttp } from "@/entities/channel/api/channel.http";
+import { channelCache } from "@/entities/channel/model/channel.cache";
 import type {
   CreateChannelPayload,
   UpdateChannelPayload,
@@ -11,9 +11,9 @@ export function useCreateChannelMutation(serverId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: CreateChannelPayload) => channelApi.createChannel(serverId, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: channelKeys.list(serverId) });
+    mutationFn: (payload: CreateChannelPayload) => channelHttp.createChannel(serverId, payload),
+    onSuccess: (createdChannel) => {
+      channelCache.add(queryClient, serverId, createdChannel);
       toast.success("Channel created successfully");
     },
     onError: (error) => toast.error(error.message),
@@ -24,9 +24,9 @@ export function useDeleteChannelMutation(serverId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (channelId: number) => channelApi.deleteChannel(serverId, channelId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: channelKeys.list(serverId) });
+    mutationFn: (channelId: number) => channelHttp.deleteChannel(serverId, channelId),
+    onSuccess: (_, channelId) => {
+      channelCache.remove(queryClient, serverId, channelId);
       toast.success("Channel deleted");
     },
     onError: (error) => toast.error(error.message),
@@ -38,9 +38,9 @@ export function useUpdateChannelMutation(serverId: number) {
 
   return useMutation({
     mutationFn: ({ channelId, payload }: { channelId: number; payload: UpdateChannelPayload }) =>
-      channelApi.updateChannel(serverId, channelId, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: channelKeys.list(serverId) });
+      channelHttp.updateChannel(serverId, channelId, payload),
+    onSuccess: (updatedChannel) => {
+      channelCache.update(queryClient, serverId, updatedChannel);
       toast.success("Channel updated");
     },
     onError: (error) => toast.error(error.message),

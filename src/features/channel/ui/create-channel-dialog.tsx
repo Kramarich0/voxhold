@@ -157,7 +157,6 @@ export function CreateChannelDialog({ serverId, open, onOpenChange, defaultKind 
             <LoadingButton
               type="submit"
               isLoading={createChannel.isPending}
-              loadingText="Creating..."
               disabled={name.trim() === ""}
             >
               Create
