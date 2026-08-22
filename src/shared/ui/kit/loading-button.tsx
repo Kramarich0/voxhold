@@ -31,7 +31,7 @@ export function LoadingButton({
       className={cn("relative grid grid-cols-1 grid-rows-1 items-center justify-center", className)}
     >
       {showSpinner && (
-        <span className="col-start-1 row-start-1 flex items-center justify-center gap-2 animate-in fade-in-0 duration-150">
+        <span className="col-start-1 row-start-1 flex items-center justify-center gap-1.5 animate-in fade-in-0 duration-150">
           <Spinner />
           {loadingText && <span>{loadingText}</span>}
         </span>
@@ -39,7 +39,7 @@ export function LoadingButton({
 
       <span
         className={cn(
-          "col-start-1 row-start-1 transition-opacity",
+          "col-start-1 row-start-1 flex items-center justify-center gap-1.5 whitespace-nowrap transition-opacity",
           showSpinner ? "opacity-0 select-none pointer-events-none" : "opacity-100",
         )}
       >

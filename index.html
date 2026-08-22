@@ -5,9 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <title>VoxHold</title>
+
+    <script>
+      (function () {
+        try {
+          const theme = localStorage.getItem('voxhold-theme') || 'system';
+          const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const isDark = theme === 'dark' || (theme === 'system' && systemDark);
+
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.style.backgroundColor = 'oklch(0.145 0 0)';
+            document.documentElement.style.colorScheme = 'dark';
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.style.backgroundColor = 'oklch(1 0 0)';
+            document.documentElement.style.colorScheme = 'light';
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
 
-  <body>
+  <body class="bg-background text-foreground">
     <div id="app"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

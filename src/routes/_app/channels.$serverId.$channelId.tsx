@@ -1,11 +1,16 @@
+import { SpeakerHighIcon } from "@phosphor-icons/react";
 import { createFileRoute } from "@tanstack/react-router";
 import * as v from "valibot";
-import { useChannelsQuery } from "@/entities/channel/api/channel.queries";
+import { channelsQueryOptions, useChannelsQuery } from "@/entities/channel/api/channel.queries";
+import type { Channel } from "@/entities/channel/model/channel.types";
+import {
+  channelMessagesQueryOptions,
+  channelPinsQueryOptions,
+} from "@/entities/message/api/message.queries";
 import type { SearchResult } from "@/entities/message/model/message.types";
 import { useMyServersQuery } from "@/entities/server/api/server.queries";
-import { useServerSubscriptions } from "@/entities/server/api/server.subscriptions";
+import { Button } from "@/shared/ui/core/button";
 import { EmptyState } from "@/shared/ui/kit/empty-state";
-import { ChannelsSidebar } from "@/widgets/channels-sidebar/ui/channels-sidebar";
 import { ChatPanel } from "@/widgets/chat-panel/ui/chat-panel";
 import {
   SecondarySidebar,
@@ -20,8 +25,25 @@ const channelSearchSchema = v.object({
 export type ChannelSearch = v.InferOutput<typeof channelSearchSchema>;
 
 export const Route = createFileRoute("/_app/channels/$serverId/$channelId")({
-  validateSearch: (search: Record<string, unknown>): ChannelSearch =>
-    v.parse(channelSearchSchema, search),
+  validateSearch: channelSearchSchema,
+  remountDeps: ({ params }) => [params.channelId],
+  loader: ({ params, context }) => {
+    const serverId = Number(params.serverId);
+    const channelId = Number(params.channelId);
+
+    const channels = context.queryClient.getQueryData<Channel[]>(
+      channelsQueryOptions(serverId).queryKey,
+    );
+
+    const currentChannel = channels?.find((c) => c.id === channelId);
+
+    if (currentChannel?.kind === "text") {
+      void context.queryClient.prefetchInfiniteQuery(
+        channelMessagesQueryOptions(serverId, channelId),
+      );
+      void context.queryClient.prefetchQuery(channelPinsQueryOptions(serverId, channelId));
+    }
+  },
   component: ChannelViewPage,
 });
 
@@ -32,28 +54,16 @@ function ChannelViewPage() {
 
   const serverId = Number(rawServerId);
   const channelId = Number(rawChannelId);
-  useServerSubscriptions(serverId);
 
   const activePanel: SecondarySidebarMode | null =
     search.panel === "none" ? null : (search.panel ?? "members");
   const targetMessageId = search.targetMessageId;
 
-  const { data: servers = [], isLoading: isServersLoading } = useMyServersQuery();
-  const currentServer = servers.find((s) => s.id === serverId) ?? servers[0];
+  const { data: servers = [] } = useMyServersQuery();
+  const currentServer = servers.find((s) => s.id === serverId);
 
   const { data: channels = [], isLoading: isChannelsLoading } = useChannelsQuery(serverId);
   const currentChannel = channels.find((c) => c.id === channelId);
-
-  const handleSelectChannel = (selectedChannelId: number) => {
-    navigate({
-      to: "/channels/$serverId/$channelId",
-      params: {
-        serverId: String(serverId),
-        channelId: String(selectedChannelId),
-      },
-      search: (prev) => ({ ...prev, targetMessageId: undefined }),
-    });
-  };
 
   const handleTogglePanel = (panel: SecondarySidebarMode) => {
     navigate({
@@ -74,23 +84,17 @@ function ChannelViewPage() {
   };
 
   const handleSelectSearchResult = (result: SearchResult) => {
-    if (result.channel_id === channelId) {
-      navigate({
-        search: (prev) => ({ ...prev, targetMessageId: result.id }),
-      });
-    } else {
-      navigate({
-        to: "/channels/$serverId/$channelId",
-        params: {
-          serverId: String(serverId),
-          channelId: String(result.channel_id),
-        },
-        search: (prev) => ({ ...prev, targetMessageId: result.id }),
-      });
-    }
+    navigate({
+      to: "/channels/$serverId/$channelId",
+      params: {
+        serverId: String(serverId),
+        channelId: String(result.channel_id),
+      },
+      search: (prev) => ({ ...prev, targetMessageId: result.id }),
+    });
   };
 
-  if (isServersLoading || (isChannelsLoading && channels.length === 0)) {
+  if (isChannelsLoading && !currentChannel) {
     return (
       <p className="flex h-full w-full items-center justify-center p-6 text-xs text-muted-foreground animate-pulse">
         Connecting to channel...
@@ -98,45 +102,46 @@ function ChannelViewPage() {
     );
   }
 
-  if (currentServer == null) {
+  if (!currentChannel) {
     return (
-      <div className="flex h-full w-full items-center justify-center p-6">
+      <div className="flex flex-1 items-center justify-center">
         <EmptyState
-          title="Server not found"
-          description="Server not found or you don't have access."
+          title="Channel not found"
+          description="Select another channel from the sidebar."
+        />
+      </div>
+    );
+  }
+
+  if (currentChannel.kind === "voice") {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center p-6 bg-background">
+        <EmptyState
+          icon={<SpeakerHighIcon className="size-8 text-primary" />}
+          title={`Voice Channel: #${currentChannel.name}`}
+          description="You are viewing a voice channel. Voice chat WebRTC room will connect here."
+          action={
+            <Button size="lg" className="gap-2">
+              <SpeakerHighIcon /> Join Voice
+            </Button>
+          }
         />
       </div>
     );
   }
 
   return (
-    <div className="flex h-full w-full min-w-0 min-h-0 overflow-hidden">
-      <ChannelsSidebar
+    <>
+      <ChatPanel
+        key={channelId}
         serverId={serverId}
-        serverName={currentServer.name}
-        activeChannelId={channelId}
-        onSelectChannel={(channel) => handleSelectChannel(channel.id)}
+        channel={currentChannel}
+        activePanel={activePanel}
+        targetMessageId={targetMessageId}
+        onTogglePanel={handleTogglePanel}
       />
 
-      {currentChannel ? (
-        <ChatPanel
-          key={channelId}
-          serverId={serverId}
-          channel={currentChannel}
-          activePanel={activePanel}
-          targetMessageId={targetMessageId}
-          onTogglePanel={handleTogglePanel}
-        />
-      ) : (
-        <div className="flex flex-1 items-center justify-center">
-          <EmptyState
-            title="Channel not found"
-            description="Select another channel from the sidebar."
-          />
-        </div>
-      )}
-
-      {currentChannel != null && (
+      {currentServer != null && (
         <SecondarySidebar
           serverId={serverId}
           serverName={currentServer.name}
@@ -151,6 +156,6 @@ function ChannelViewPage() {
           }}
         />
       )}
-    </div>
+    </>
   );
 }

@@ -12,6 +12,10 @@ import { Route as rootRouteImport } from "./routes/__root"
 import { Route as AppRouteImport } from "./routes/_app"
 import { Route as AuthRouteImport } from "./routes/auth"
 import { Route as AppIndexRouteImport } from "./routes/_app/index"
+import { Route as InviteTokenRouteImport } from "./routes/invite.$token"
+import { Route as AppChannelsIndexRouteImport } from "./routes/_app/channels.index"
+import { Route as AppChannelsServerIdRouteImport } from "./routes/_app/channels.$serverId"
+import { Route as AppChannelsServerIdIndexRouteImport } from "./routes/_app/channels.$serverId.index"
 import { Route as AppChannelsServerIdChannelIdRouteImport } from "./routes/_app/channels.$serverId.$channelId"
 
 const AppRoute = AppRouteImport.update({
@@ -28,46 +32,96 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: "/",
   getParentRoute: () => AppRoute,
 } as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: "/invite/$token",
+  path: "/invite/$token",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppChannelsIndexRoute = AppChannelsIndexRouteImport.update({
+  id: "/channels/",
+  path: "/channels/",
+  getParentRoute: () => AppRoute,
+} as any)
+const AppChannelsServerIdRoute = AppChannelsServerIdRouteImport.update({
+  id: "/channels/$serverId",
+  path: "/channels/$serverId",
+  getParentRoute: () => AppRoute,
+} as any)
+const AppChannelsServerIdIndexRoute =
+  AppChannelsServerIdIndexRouteImport.update({
+    id: "/",
+    path: "/",
+    getParentRoute: () => AppChannelsServerIdRoute,
+  } as any)
 const AppChannelsServerIdChannelIdRoute =
   AppChannelsServerIdChannelIdRouteImport.update({
-    id: "/channels/$serverId/$channelId",
-    path: "/channels/$serverId/$channelId",
-    getParentRoute: () => AppRoute,
+    id: "/$channelId",
+    path: "/$channelId",
+    getParentRoute: () => AppChannelsServerIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   "/": typeof AppIndexRoute
   "/auth": typeof AuthRoute
+  "/invite/$token": typeof InviteTokenRoute
+  "/channels/$serverId": typeof AppChannelsServerIdRouteWithChildren
+  "/channels/": typeof AppChannelsIndexRoute
   "/channels/$serverId/$channelId": typeof AppChannelsServerIdChannelIdRoute
+  "/channels/$serverId/": typeof AppChannelsServerIdIndexRoute
 }
 export interface FileRoutesByTo {
   "/auth": typeof AuthRoute
+  "/invite/$token": typeof InviteTokenRoute
   "/": typeof AppIndexRoute
+  "/channels": typeof AppChannelsIndexRoute
   "/channels/$serverId/$channelId": typeof AppChannelsServerIdChannelIdRoute
+  "/channels/$serverId": typeof AppChannelsServerIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   "/_app": typeof AppRouteWithChildren
   "/auth": typeof AuthRoute
+  "/invite/$token": typeof InviteTokenRoute
   "/_app/": typeof AppIndexRoute
+  "/_app/channels/$serverId": typeof AppChannelsServerIdRouteWithChildren
+  "/_app/channels/": typeof AppChannelsIndexRoute
   "/_app/channels/$serverId/$channelId": typeof AppChannelsServerIdChannelIdRoute
+  "/_app/channels/$serverId/": typeof AppChannelsServerIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: "/" | "/auth" | "/channels/$serverId/$channelId"
+  fullPaths:
+    | "/"
+    | "/auth"
+    | "/invite/$token"
+    | "/channels/$serverId"
+    | "/channels/"
+    | "/channels/$serverId/$channelId"
+    | "/channels/$serverId/"
   fileRoutesByTo: FileRoutesByTo
-  to: "/auth" | "/" | "/channels/$serverId/$channelId"
+  to:
+    | "/auth"
+    | "/invite/$token"
+    | "/"
+    | "/channels"
+    | "/channels/$serverId/$channelId"
+    | "/channels/$serverId"
   id:
     | "__root__"
     | "/_app"
     | "/auth"
+    | "/invite/$token"
     | "/_app/"
+    | "/_app/channels/$serverId"
+    | "/_app/channels/"
     | "/_app/channels/$serverId/$channelId"
+    | "/_app/channels/$serverId/"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
+  InviteTokenRoute: typeof InviteTokenRoute
 }
 
 declare module "@tanstack/react-router" {
@@ -93,24 +147,67 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    "/invite/$token": {
+      id: "/invite/$token"
+      path: "/invite/$token"
+      fullPath: "/invite/$token"
+      preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/_app/channels/": {
+      id: "/_app/channels/"
+      path: "/channels"
+      fullPath: "/channels/"
+      preLoaderRoute: typeof AppChannelsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    "/_app/channels/$serverId": {
+      id: "/_app/channels/$serverId"
+      path: "/channels/$serverId"
+      fullPath: "/channels/$serverId"
+      preLoaderRoute: typeof AppChannelsServerIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    "/_app/channels/$serverId/": {
+      id: "/_app/channels/$serverId/"
+      path: "/"
+      fullPath: "/channels/$serverId/"
+      preLoaderRoute: typeof AppChannelsServerIdIndexRouteImport
+      parentRoute: typeof AppChannelsServerIdRoute
+    }
     "/_app/channels/$serverId/$channelId": {
       id: "/_app/channels/$serverId/$channelId"
-      path: "/channels/$serverId/$channelId"
+      path: "/$channelId"
       fullPath: "/channels/$serverId/$channelId"
       preLoaderRoute: typeof AppChannelsServerIdChannelIdRouteImport
-      parentRoute: typeof AppRoute
+      parentRoute: typeof AppChannelsServerIdRoute
     }
   }
 }
 
+interface AppChannelsServerIdRouteChildren {
+  AppChannelsServerIdChannelIdRoute: typeof AppChannelsServerIdChannelIdRoute
+  AppChannelsServerIdIndexRoute: typeof AppChannelsServerIdIndexRoute
+}
+
+const AppChannelsServerIdRouteChildren: AppChannelsServerIdRouteChildren = {
+  AppChannelsServerIdChannelIdRoute: AppChannelsServerIdChannelIdRoute,
+  AppChannelsServerIdIndexRoute: AppChannelsServerIdIndexRoute,
+}
+
+const AppChannelsServerIdRouteWithChildren =
+  AppChannelsServerIdRoute._addFileChildren(AppChannelsServerIdRouteChildren)
+
 interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
-  AppChannelsServerIdChannelIdRoute: typeof AppChannelsServerIdChannelIdRoute
+  AppChannelsServerIdRoute: typeof AppChannelsServerIdRouteWithChildren
+  AppChannelsIndexRoute: typeof AppChannelsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
-  AppChannelsServerIdChannelIdRoute: AppChannelsServerIdChannelIdRoute,
+  AppChannelsServerIdRoute: AppChannelsServerIdRouteWithChildren,
+  AppChannelsIndexRoute: AppChannelsIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -118,6 +215,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
+  InviteTokenRoute: InviteTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

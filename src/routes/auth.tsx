@@ -1,32 +1,50 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useInstanceQuery } from "@/entities/auth/api/auth.queries";
-import { useAuthStore } from "@/entities/auth/model/use-auth.store";
+import * as v from "valibot";
+import { instanceQueryOptions, useInstanceQuery } from "@/entities/auth/api/auth.queries";
 import { LoginForm } from "@/features/auth/ui/login-form";
 import { RegisterForm } from "@/features/auth/ui/register-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/core/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/core/tabs";
 
-type AuthSearch = {
-  tab?: "login" | "register";
-  invite?: string;
-};
+const authSearchSchema = v.pipe(
+  v.object({
+    tab: v.optional(v.picklist(["login", "register"])),
+    invite: v.optional(v.string()),
+  }),
+  v.transform((input) => ({
+    invite: input.invite,
+    tab: input.tab ?? (input.invite ? "register" : "login"),
+  })),
+);
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (search: Record<string, unknown>): AuthSearch => ({
-    tab: search.tab === "register" || search.invite != null ? "register" : "login",
-    invite: typeof search.invite === "string" ? search.invite : undefined,
-  }),
-  beforeLoad: () => {
-    if (useAuthStore.getState().token != null) {
+  validateSearch: authSearchSchema,
+  beforeLoad: ({ context }) => {
+    if (context.auth.isAuthenticated) {
       throw redirect({ to: "/" });
     }
+  },
+  loader: async ({ context }) => {
+    await context.queryClient.ensureQueryData(instanceQueryOptions());
   },
   component: AuthPage,
 });
 
 function AuthPage() {
-  const { tab = "login", invite } = Route.useSearch();
+  const { tab, invite } = Route.useSearch();
+  const navigate = Route.useNavigate();
   const { data: instance } = useInstanceQuery();
+
+  const handleTabChange = (nextTab: string | number | null) => {
+    if (nextTab === "login" || nextTab === "register") {
+      navigate({
+        search: (prev) => ({
+          ...prev,
+          tab: nextTab,
+        }),
+      });
+    }
+  };
 
   return (
     <div className="flex h-full min-h-screen items-center justify-center p-4 bg-background">
@@ -37,7 +55,7 @@ function AuthPage() {
         </CardHeader>
 
         <CardContent>
-          <Tabs defaultValue={tab} className="w-full">
+          <Tabs value={tab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="w-full grid grid-cols-2 mb-4">
               <TabsTrigger value="login">Sign In</TabsTrigger>
               <TabsTrigger value="register">Register</TabsTrigger>

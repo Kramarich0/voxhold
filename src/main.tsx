@@ -4,6 +4,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { routeTree } from "./routeTree.gen";
 import "./global.css";
+import { useAuthStore } from "./entities/auth/model/use-auth.store";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,6 +19,21 @@ const queryClient = new QueryClient({
 const router = createRouter({
   routeTree,
   defaultPreload: "intent",
+  defaultPreloadDelay: 50,
+  defaultPendingMs: 150,
+  defaultPendingMinMs: 400,
+  scrollRestoration: true,
+  context: {
+    queryClient,
+    auth: {
+      get token() {
+        return useAuthStore.getState().token;
+      },
+      get isAuthenticated() {
+        return useAuthStore.getState().token !== null;
+      },
+    },
+  },
 });
 
 declare module "@tanstack/react-router" {

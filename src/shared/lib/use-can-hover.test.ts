@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { useCanHover } from "./use-can-hover";
 
 describe("useCanHover hook", () => {
-  let changeListeners: Array<(e: MediaQueryListEvent) => void> = [];
+  let changeListeners: Array<(event: MediaQueryListEvent) => void> = [];
   let currentMatches = false;
 
   const mockMatchMedia = (initialMatches: boolean) => {
@@ -18,16 +18,18 @@ describe("useCanHover hook", () => {
       onchange: null,
       addListener: vi.fn(),
       removeListener: vi.fn(),
-      addEventListener: vi.fn((event: string, listener: (e: MediaQueryListEvent) => void) => {
+      addEventListener: vi.fn((event: string, listener: (event: MediaQueryListEvent) => void) => {
         if (event === "change") {
           changeListeners.push(listener);
         }
       }),
-      removeEventListener: vi.fn((event: string, listener: (e: MediaQueryListEvent) => void) => {
-        if (event === "change") {
-          changeListeners = changeListeners.filter((l) => l !== listener);
-        }
-      }),
+      removeEventListener: vi.fn(
+        (event: string, listener: (event: MediaQueryListEvent) => void) => {
+          if (event === "change") {
+            changeListeners = changeListeners.filter((l) => l !== listener);
+          }
+        },
+      ),
       dispatchEvent: vi.fn(),
     }));
   };
