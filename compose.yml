@@ -1,0 +1,20 @@
+services:
+  backend:
+    image: ghcr.io/looneman1/voxhold-backend:latest
+    container_name: voxhold-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"             
+      - "50000:50000/udp"       
+      - "50001:50001/udp"       
+    environment:
+      - HTTP_PORT=8080
+      - INSTANCE_NAME=Voxhold
+      - BOOTSTRAP_USERNAME=owner
+      - BOOTSTRAP_PASSWORD=password123   
+      - WEBRTC_PUBLIC_IP=127.0.0.1
+    volumes:
+      - voxhold_data:/app/data
+
+volumes:
+  voxhold_data:

@@ -13,7 +13,8 @@
       "!!node_modules",
       "!!**/.vercel",
       "!!**/vercel.json",
-      "!!**/*.svg"
+      "!!**/*.svg",
+      "!!coverage"
     ]
   },
   "formatter": {

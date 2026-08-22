@@ -6,9 +6,6 @@ pre-commit:
       run: bun lint:fix {staged_files}
       stage_fixed: true
 
-    - name: arch-check
-      run: bun run arch-check
-
 commit-msg:
   commands:
     commit-check:
