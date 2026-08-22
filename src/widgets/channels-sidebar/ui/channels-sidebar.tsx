@@ -10,12 +10,14 @@ import { useChannelsQuery } from "@/entities/channel/api/channel.queries";
 import { useChannelListSubscriptions } from "@/entities/channel/api/channel.subscriptions";
 import type { Channel, ChannelKind } from "@/entities/channel/model/channel.types";
 import { ChannelItem, ChannelItemSkeleton } from "@/entities/channel/ui/channel-item";
+import { useIsChannelUnread } from "@/entities/readstate/api/read.subscriptions";
 import { useMeQuery } from "@/entities/user/api/user.queries";
 import { useLogoutMutation } from "@/features/auth/api/auth.mutations";
 import { ChannelActions } from "@/features/channel/ui/channel-actions";
 import { CreateChannelDialog } from "@/features/channel/ui/create-channel-dialog";
 import { DeleteChannelDialog } from "@/features/channel/ui/delete-channel-dialog";
 import { UpdateChannelDialog } from "@/features/channel/ui/update-channel-dialog";
+import { CreateInviteDialog } from "@/features/invite/ui/create-invite-dialog";
 import { UpdateServerDialog } from "@/features/server/ui/update-server-dialog";
 import { UpdateUserDialog } from "@/features/user/ui/update-user-dialog";
 import { Button, buttonVariants } from "@/shared/ui/core/button";
@@ -48,6 +50,7 @@ export function ChannelsSidebar({
   const [createDialogKind, setCreateDialogKind] = useState<ChannelKind>("text");
   const [updateServerOpen, setUpdateServerOpen] = useState(false);
   const [updateUserOpen, setUpdateUserOpen] = useState(false);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
 
   const [editingChannel, setEditingChannel] = useState<Channel | null>(null);
   const [deletingChannel, setDeletingChannel] = useState<Channel | null>(null);
@@ -122,8 +125,14 @@ export function ChannelsSidebar({
           </div>
 
           <div className="flex items-center shrink-0">
-            <AppTooltip content="Invite">
-              <Button variant="ghost" size="icon-sm">
+            <AppTooltip content="Invite People">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="text-muted-foreground"
+                onClick={() => setInviteDialogOpen(true)}
+                aria-label="Create Invite Link"
+              >
                 <UserPlusIcon />
               </Button>
             </AppTooltip>
@@ -187,9 +196,17 @@ export function ChannelsSidebar({
 
       <UpdateUserDialog
         open={updateUserOpen}
+        username={user?.username ?? ""}
         userAbout={user?.about ?? ""}
         userCountryCode={user?.country_code ?? ""}
         onOpenChange={setUpdateUserOpen}
+      />
+
+      <CreateInviteDialog
+        serverId={serverId}
+        serverName={serverName}
+        open={inviteDialogOpen}
+        onOpenChange={setInviteDialogOpen}
       />
     </>
   );
@@ -251,23 +268,44 @@ function ChannelSection({
             <SkeletonList count={3} component={ChannelItemSkeleton} />
           ) : (
             channels.map((channel) => (
-              <ChannelItem
+              <ChannelRow
                 key={channel.id}
                 channel={channel}
                 isActive={channel.id === activeChannelId}
-                onClick={() => onSelectChannel?.(channel)}
-                actions={
-                  <ChannelActions
-                    channel={channel}
-                    onEdit={onEditChannel}
-                    onDelete={onDeleteChannel}
-                  />
-                }
+                onSelect={onSelectChannel}
+                onEdit={onEditChannel}
+                onDelete={onDeleteChannel}
               />
             ))
           )}
         </div>
       </CollapsibleContent>
     </Collapsible>
+  );
+}
+
+function ChannelRow({
+  channel,
+  isActive,
+  onSelect,
+  onEdit,
+  onDelete,
+}: {
+  channel: Channel;
+  isActive: boolean;
+  onSelect?: (c: Channel) => void;
+  onEdit: (c: Channel) => void;
+  onDelete: (c: Channel) => void;
+}) {
+  const isUnread = useIsChannelUnread(channel);
+
+  return (
+    <ChannelItem
+      channel={channel}
+      isActive={isActive}
+      hasUnread={isUnread}
+      onClick={() => onSelect?.(channel)}
+      actions={<ChannelActions channel={channel} onEdit={onEdit} onDelete={onDelete} />}
+    />
   );
 }

@@ -15,9 +15,6 @@ export const serverWs = {
   onMemberRemoved: (callback: (data: { server_id: number; user_id: number }) => void) =>
     wsClient.on("server.member_removed", callback),
 
-  onServerDeleted: (callback: (data: { server_id: number }) => void) =>
-    wsClient.on("server.deleted", callback),
-
   onPresenceSnapshot: (callback: (data: WsPresenceSnapshotData) => void) =>
     wsClient.on("presence.snapshot", callback),
 

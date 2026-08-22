@@ -16,17 +16,17 @@ type ActionsItem = {
   tooltipContent: string;
   icon: ReactNode;
   className?: string;
-  handle: (e: MouseEvent) => void;
+  handle: (event: MouseEvent) => void;
 };
 
 export function ChannelActions({ channel, onEdit, onDelete }: Props) {
-  const handleEditClick = (e: MouseEvent) => {
-    e.stopPropagation();
+  const handleEditClick = (event: MouseEvent) => {
+    event.stopPropagation();
     onEdit(channel);
   };
 
-  const handleDeleteClick = (e: MouseEvent) => {
-    e.stopPropagation();
+  const handleDeleteClick = (event: MouseEvent) => {
+    event.stopPropagation();
     onDelete(channel);
   };
 

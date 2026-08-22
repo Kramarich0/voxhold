@@ -58,7 +58,8 @@ export type WsMessageData = {
   edited_at: number | null;
 };
 
-export type WsMessagePinnedData = WsMessageRef & {
+export type WsMessagePinnedData = {
+  message: WsMessageData;
   pinned_by: WsUserSummary;
   pinned_at: number;
 };
@@ -89,6 +90,32 @@ export type WsServerMemberChangedData = {
   member: WsServerMemberData;
 };
 
+export type InviteStatus = "pending" | "accepted" | "declined" | "canceled" | "expired";
+
+export type IncomingInvite = {
+  id: number;
+  server_id: number;
+  server_name: string;
+  inviter_user_id: number;
+  inviter_username: string;
+  status: InviteStatus;
+  expires_at: number;
+  created_at: number;
+};
+
+export type DirectInvite = {
+  id: number;
+  server_id: number;
+  server_name: string;
+  inviter_user_id: number;
+  inviter_username: string;
+  invitee_user_id: number;
+  status: InviteStatus;
+  expires_at: number;
+  responded_at: number | null;
+  created_at: number;
+};
+
 export type IncomingEvents = {
   ready: WsReadyData;
   error: WsErrorData;
@@ -108,9 +135,9 @@ export type IncomingEvents = {
   "server.member_joined": WsServerMemberChangedData;
   "server.member_role_updated": WsServerMemberChangedData;
   "server.member_removed": { server_id: number; user_id: number };
-  "server.deleted": { server_id: number };
   "presence.snapshot": WsPresenceSnapshotData;
   "presence.updated": WsPresenceUpdatedData;
+  "invitation.received": IncomingInvite;
 };
 
 export type OutgoingEvents = {
@@ -134,10 +161,22 @@ export function createWsClient(baseUrl?: string) {
 
   function resolveWsEndpoint(): string {
     if (baseUrl) return baseUrl;
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const envUrl = import.meta.env.VITE_WS_URL;
-    if (envUrl) return envUrl;
-    return `${protocol}//${window.location.host}/api/v1/ws`;
+
+    const envWsUrl = import.meta.env.VITE_WS_URL;
+    if (envWsUrl) return envWsUrl;
+
+    const envApiUrl = import.meta.env.VITE_API_URL;
+    if (envApiUrl && /^https?:\/\//i.test(envApiUrl)) {
+      const wsUrl = envApiUrl.replace(/^http:/i, "ws:").replace(/^https:/i, "wss:");
+      return `${wsUrl.replace(/\/$/, "")}/ws`;
+    }
+
+    if (typeof window !== "undefined" && window.location) {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      return `${protocol}//${window.location.host}/api/v1/ws`;
+    }
+
+    return "ws://localhost:8080/api/v1/ws";
   }
 
   const core = createWsCore<IncomingEvents, OutgoingEvents>({
@@ -155,12 +194,14 @@ export function createWsClient(baseUrl?: string) {
         return;
       }
 
-      socket.send(
-        JSON.stringify({
-          type: "auth",
-          data: { token },
-        }),
-      );
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(
+          JSON.stringify({
+            type: "auth",
+            data: { token },
+          }),
+        );
+      }
     },
   });
 
@@ -178,6 +219,10 @@ export function createWsClient(baseUrl?: string) {
       console.warn("[WS] Session expired or unauthorized by server");
       authToken.clear();
       core.disconnect(4001, "Unauthorized");
+
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/auth")) {
+        window.location.href = "/auth";
+      }
     }
   });
 

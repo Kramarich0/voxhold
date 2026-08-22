@@ -11,7 +11,7 @@ export const ROLE_DISPLAY_VARIANTS: Record<ServerRole, RoleDisplayConfig | null>
   owner: {
     label: "Owner",
     badgeVariant: "default",
-    className: "bg-warning/10 text-warning border border-warning/50",
+    className: "bg-warning/15 text-warning",
     priority: 1,
   },
   admin: {

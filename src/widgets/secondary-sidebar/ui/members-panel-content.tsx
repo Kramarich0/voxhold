@@ -1,13 +1,12 @@
 import { UsersIcon } from "@phosphor-icons/react";
-import { useServerMembersQuery } from "@/entities/server/api/server.queries";
-import {
-  useServerPresence,
-  useServerSubscriptions,
-} from "@/entities/server/api/server.subscriptions";
+import { useMyServersQuery, useServerMembersQuery } from "@/entities/server/api/server.queries";
+import { useServerPresence } from "@/entities/server/api/server.subscriptions";
 import type { ServerMember } from "@/entities/server/model/server.types";
 import { MemberCard, MemberCardSkeleton } from "@/entities/server/ui/member-card";
 import { RoleBadge } from "@/entities/server/ui/role-badge";
+import { useMeQuery } from "@/entities/user/api/user.queries";
 import { UserProfilePopover } from "@/entities/user/ui/user-profile-popover";
+import { MemberContextMenu } from "@/features/server/ui/member-context-menu";
 import { ScrollArea } from "@/shared/ui/core/scroll-area";
 import { EmptyState } from "@/shared/ui/kit/empty-state";
 import { SkeletonList } from "@/shared/ui/kit/skeleton-list";
@@ -25,6 +24,11 @@ type MemberGroup = {
 export function MembersPanelContent({ serverId }: Props) {
   const onlineUserIds = useServerPresence(serverId);
   const { data: members = [], isLoading } = useServerMembersQuery(serverId);
+  const { data: myServers = [] } = useMyServersQuery();
+  const { data: me } = useMeQuery();
+
+  const currentServer = myServers.find((s) => s.id === serverId);
+  const currentUserRole = currentServer?.role;
 
   const onlineMembers = members.filter(
     (member) => onlineUserIds?.has(member.user_id) ?? member.last_seen_at != null,
@@ -65,15 +69,24 @@ export function MembersPanelContent({ serverId }: Props) {
                   </span>
                   <div className="flex flex-col gap-0.5">
                     {group.members.map((member) => (
-                      <UserProfilePopover
+                      <MemberContextMenu
                         key={member.user_id}
-                        userId={member.user_id}
-                        roleBadge={<RoleBadge role={member.role} />}
-                        isOnline={group.isOnline}
-                        side="left"
+                        serverId={serverId}
+                        member={member}
+                        currentUserId={me?.id}
+                        currentUserRole={currentUserRole}
                       >
-                        <MemberCard member={member} isOnline={group.isOnline} />
-                      </UserProfilePopover>
+                        <UserProfilePopover
+                          key={member.user_id}
+                          userId={member.user_id}
+                          roleBadge={<RoleBadge role={member.role} />}
+                          isOnline={group.isOnline}
+                          side="left"
+                          className="w-full"
+                        >
+                          <MemberCard member={member} isOnline={group.isOnline} />
+                        </UserProfilePopover>
+                      </MemberContextMenu>
                     ))}
                   </div>
                 </section>

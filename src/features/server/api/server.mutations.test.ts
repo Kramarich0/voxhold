@@ -5,7 +5,11 @@ import { toast } from "sonner";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { serverHttp } from "@/entities/server/api/server.http";
 import { serverKeys } from "@/entities/server/model/server.keys";
-import { useUpdateServerMutation } from "./server.mutations";
+import {
+  useBanMemberMutation,
+  useUpdateMemberRoleMutation,
+  useUpdateServerMutation,
+} from "./server.mutations";
 
 vi.mock("sonner", () => ({
   toast: {
@@ -17,6 +21,8 @@ vi.mock("sonner", () => ({
 vi.mock("@/entities/server/api/server.http", () => ({
   serverHttp: {
     updateServer: vi.fn(),
+    updateMemberRole: vi.fn(),
+    banMember: vi.fn(),
   },
 }));
 
@@ -74,6 +80,53 @@ describe("server mutations", () => {
       });
 
       expect(toast.error).toHaveBeenCalledWith("Forbidden");
+    });
+  });
+
+  describe("member moderation mutations", () => {
+    const userId = 42;
+
+    describe("useUpdateMemberRoleMutation", () => {
+      it("updates member role and updates cache", async () => {
+        const wrapper = createWrapper();
+        vi.mocked(serverHttp.updateMemberRole).mockResolvedValueOnce({
+          user_id: userId,
+          username: "alex",
+          created_at: 100,
+          role: "admin",
+          joined_at: 200,
+          about: "",
+          country_code: null,
+          last_seen_at: null,
+        });
+
+        const { result } = renderHook(() => useUpdateMemberRoleMutation(serverId), { wrapper });
+
+        await act(async () => {
+          await result.current.mutateAsync({ userId, payload: { role: "admin" } });
+        });
+
+        expect(serverHttp.updateMemberRole).toHaveBeenCalledWith(serverId, userId, {
+          role: "admin",
+        });
+        expect(toast.success).toHaveBeenCalledWith("Role updated to admin for @alex");
+      });
+    });
+
+    describe("useBanMemberMutation", () => {
+      it("bans member, removes from cache and shows toast", async () => {
+        const wrapper = createWrapper();
+        vi.mocked(serverHttp.banMember).mockResolvedValueOnce();
+
+        const { result } = renderHook(() => useBanMemberMutation(serverId), { wrapper });
+
+        await act(async () => {
+          await result.current.mutateAsync({ userId, username: "spammer" });
+        });
+
+        expect(serverHttp.banMember).toHaveBeenCalledWith(serverId, userId);
+        expect(toast.success).toHaveBeenCalledWith("@spammer has been banned");
+      });
     });
   });
 });
