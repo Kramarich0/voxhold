@@ -5,7 +5,12 @@ import { toast } from "sonner";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { authHttp } from "@/entities/auth/api/auth.http";
 import * as authStore from "@/entities/auth/model/use-auth.store";
-import { useLoginMutation, useLogoutMutation, useRegisterMutation } from "./auth.mutations";
+import {
+  useDeleteAccountMutation,
+  useLoginMutation,
+  useLogoutMutation,
+  useRegisterMutation,
+} from "./auth.mutations";
 
 const mockNavigate = vi.fn();
 
@@ -25,6 +30,7 @@ vi.mock("@/entities/auth/api/auth.http", () => ({
     login: vi.fn(),
     register: vi.fn(),
     logout: vi.fn(),
+    deleteAccount: vi.fn(),
   },
 }));
 
@@ -128,6 +134,41 @@ describe("auth mutations", () => {
       expect(mockClearToken).toHaveBeenCalled();
       expect(clearSpy).toHaveBeenCalled();
       expect(mockNavigate).toHaveBeenCalledWith({ to: "/auth" });
+    });
+  });
+  describe("useDeleteAccountMutation", () => {
+    it("deletes account, clears token, clears query client and redirects to '/auth'", async () => {
+      const wrapper = createWrapper();
+      const clearSpy = vi.spyOn(queryClient, "clear");
+      vi.mocked(authHttp.deleteAccount).mockResolvedValueOnce();
+
+      const { result } = renderHook(() => useDeleteAccountMutation(), { wrapper });
+
+      await act(async () => {
+        await result.current.mutateAsync();
+      });
+
+      expect(authHttp.deleteAccount).toHaveBeenCalled();
+      expect(mockClearToken).toHaveBeenCalled();
+      expect(clearSpy).toHaveBeenCalled();
+      expect(toast.success).toHaveBeenCalledWith("Your account has been deleted");
+      expect(mockNavigate).toHaveBeenCalledWith({ to: "/auth" });
+    });
+
+    it("handles delete account error (e.g. owner cannot leave)", async () => {
+      const wrapper = createWrapper();
+      vi.mocked(authHttp.deleteAccount).mockRejectedValueOnce(
+        new Error("instance owner cannot delete their account"),
+      );
+
+      const { result } = renderHook(() => useDeleteAccountMutation(), { wrapper });
+
+      await act(async () => {
+        await result.current.mutateAsync().catch(() => {});
+      });
+
+      expect(toast.error).toHaveBeenCalledWith("instance owner cannot delete their account");
+      expect(mockClearToken).not.toHaveBeenCalled();
     });
   });
 });

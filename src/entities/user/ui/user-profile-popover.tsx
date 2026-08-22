@@ -1,4 +1,5 @@
 import { type ReactNode, useState } from "react";
+import { cn } from "@/shared/lib/cn";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/core/popover";
 import { UserProfileCard } from "./user-profile-card";
 
@@ -9,6 +10,7 @@ type Props = {
   side?: "top" | "right" | "bottom" | "left";
   align?: "start" | "center" | "end";
   sideOffset?: number;
+  className?: string;
   children: ReactNode;
 };
 
@@ -19,6 +21,7 @@ export function UserProfilePopover({
   side = "right",
   align = "start",
   sideOffset = 8,
+  className,
   children,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -29,7 +32,7 @@ export function UserProfilePopover({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger render={<span className="inline-flex cursor-pointer" />}>
+      <PopoverTrigger render={<span className={cn("inline-flex cursor-pointer", className)} />}>
         {children}
       </PopoverTrigger>
 

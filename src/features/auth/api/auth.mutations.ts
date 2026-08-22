@@ -58,3 +58,20 @@ export function useLogoutMutation() {
     },
   });
 }
+
+export function useDeleteAccountMutation() {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const clearToken = useClearAuthToken();
+
+  return useMutation({
+    mutationFn: authHttp.deleteAccount,
+    onSuccess: () => {
+      clearToken();
+      queryClient.clear();
+      toast.success("Your account has been deleted");
+      navigate({ to: "/auth" });
+    },
+    onError: (error) => toast.error(error.message),
+  });
+}

@@ -21,7 +21,6 @@ export const userProfileQueryOptions = (userId: number) =>
 export function useMeQuery() {
   return useQuery(meQueryOptions());
 }
-// TODO: implement this endpoint
 export function useUserProfileQuery(userId: number) {
   return useQuery(userProfileQueryOptions(userId));
 }
