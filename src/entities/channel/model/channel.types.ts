@@ -8,6 +8,7 @@ export type Channel = {
   position: number;
   created_by: number;
   created_at: number;
+  last_message_id?: number | null;
 };
 
 export type CreateChannelPayload = {

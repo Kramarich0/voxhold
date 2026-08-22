@@ -8,14 +8,26 @@ import type { Channel } from "../model/channel.types";
 type Props = ComponentProps<typeof SidebarMenuButton> & {
   channel: Channel;
   isActive?: boolean;
+  hasUnread?: boolean;
   actions?: ReactNode;
 };
 
-export function ChannelItem({ channel, isActive = false, actions, className, ...props }: Props) {
+export function ChannelItem({
+  channel,
+  isActive = false,
+  hasUnread = false,
+  actions,
+  className,
+  ...props
+}: Props) {
   const isVoice = channel.kind === "voice";
+  const showUnreadStyle = hasUnread && !isActive;
 
   return (
     <div className="group/channel relative flex items-center w-full">
+      {showUnreadStyle && (
+        <span className="absolute -left-1.5 top-1/2 -translate-y-1/2 size-1.5 rounded-full bg-foreground" />
+      )}
       <SidebarMenuButton
         isActive={isActive}
         className={cn(

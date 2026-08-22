@@ -73,31 +73,14 @@ export const messageCache = {
     queryClient: QueryClient,
     serverId: number,
     channelId: number,
-    pinnedData: WsMessagePinnedData,
+    pinnedData: PinnedMessage,
   ) => {
-    const channelCacheData = queryClient.getQueryData<InfiniteData<MessagePage>>(
-      messageKeys.channel(serverId, channelId),
+    queryClient.setQueryData<PinnedMessage[]>(
+      messageKeys.pins(serverId, channelId),
+      (oldData = []) => {
+        if (oldData.some((p) => p.message.id === pinnedData.message.id)) return oldData;
+        return [...oldData, pinnedData];
+      },
     );
-    const foundMessage = channelCacheData?.pages
-      .flatMap((p) => p.messages)
-      .find((m) => m.id === pinnedData.message_id);
-
-    if (foundMessage) {
-      const newPinnedItem: PinnedMessage = {
-        message: foundMessage,
-        pinned_by: pinnedData.pinned_by,
-        pinned_at: pinnedData.pinned_at,
-      };
-
-      queryClient.setQueryData<PinnedMessage[]>(
-        messageKeys.pins(serverId, channelId),
-        (oldPins = []) => {
-          if (oldPins.some((p) => p.message.id === pinnedData.message_id)) return oldPins;
-          return [newPinnedItem, ...oldPins];
-        },
-      );
-    } else {
-      queryClient.invalidateQueries({ queryKey: messageKeys.pins(serverId, channelId) });
-    }
   },
 };

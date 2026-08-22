@@ -17,6 +17,7 @@ import { useServerPresence } from "@/entities/server/api/server.subscriptions";
 import type { ServerRole } from "@/entities/server/model/server.types";
 import { RoleBadge } from "@/entities/server/ui/role-badge";
 import { UserProfilePopover } from "@/entities/user/ui/user-profile-popover";
+import { IncomingInvitesPopover } from "@/features/invite/ui/incoming-invites-popover";
 import {
   useDeleteMessageMutation,
   usePinMessageMutation,
@@ -164,6 +165,8 @@ export function ChatPanel({
     enabled: !isContextMode && !isMessagesLoading && regularMessages.length > 0,
   });
 
+  const onlineUserIds = useServerPresence(serverId);
+
   const handleJumpToLatest = () => {
     if (isContextMode) {
       navigate({ search: (prev) => ({ ...prev, targetMessageId: undefined }) });
@@ -202,6 +205,7 @@ export function ChatPanel({
         <ChatHeader.Info channel={channel} topic="Everything important is here" />
 
         <ChatHeader.Actions>
+          <IncomingInvitesPopover />
           <ThemeToggle />
 
           <AppTooltip content="Search Messages" side="bottom">
@@ -301,6 +305,7 @@ export function ChatPanel({
                   message={message}
                   serverId={serverId}
                   prevMessage={prevMessage}
+                  isAuthorOnline={onlineUserIds.has(message.author.user_id)}
                   isPinned={pinnedMessageIds.has(message.id)}
                   isEditing={editingMessageId === message.id}
                   isHighlighted={highlightedMessageId === message.id}
@@ -344,6 +349,7 @@ type MessageRowProps = {
   isEditing: boolean;
   isHighlighted?: boolean;
   serverId: number;
+  isAuthorOnline: boolean;
   role?: ServerRole;
   onStartEdit: (id: number) => void;
   onCancelEdit: () => void;
@@ -366,14 +372,13 @@ const MessageRow = memo(function MessageRow({
   onStartEdit,
   onCancelEdit,
   onPin,
+  isAuthorOnline,
   onDelete,
   isPinPending,
   isDeletePending,
 }: MessageRowProps) {
   const showDateSeparator =
     prevMessage == null || !isSameDayTimestamp(message.created_at, prevMessage.created_at);
-  const onlineUserIds = useServerPresence(serverId);
-  const isAuthorOnline = onlineUserIds.has(message.author.user_id);
   const initials = getInitials(message.author.username);
   const isSameAuthor = prevMessage?.author.user_id === message.author.user_id;
   const isWithinTimeThreshold =
@@ -388,9 +393,12 @@ const MessageRow = memo(function MessageRow({
       {showDateSeparator && (
         <div className="relative py-3 flex items-center justify-center px-4 select-none">
           <div className="absolute inset-x-4 h-px bg-border" />
-          <span className="relative rounded-full bg-muted/50 px-2.5 py-0.5 text-2xs font-bold tracking-wider text-muted-foreground uppercase">
+          <Badge
+            variant="secondary"
+            className="relative rounded-full text-2xs font-bold tracking-wider text-muted-foreground uppercase"
+          >
             {formatDateDivider(message.created_at)}
-          </span>
+          </Badge>
         </div>
       )}
 

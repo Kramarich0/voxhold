@@ -27,9 +27,9 @@ export function useMessageSubscriptions(serverId: number, channelId?: number) {
       }
     });
 
-    const unsubPinned = messageWs.onPinned((data) => {
-      if (data.channel_id === channelId) {
-        messageCache.pin(queryClient, serverId, channelId, data);
+    const unsubPinned = messageWs.onPinned((pinnedItem) => {
+      if (pinnedItem.message.channel_id === channelId) {
+        messageCache.pin(queryClient, serverId, channelId, pinnedItem);
       }
     });
 
